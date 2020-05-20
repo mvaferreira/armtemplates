@@ -12,7 +12,7 @@
         "ExternalFqdn": {
             "type": "string",
             "defaultValue": "remoteapps.contoso.com"
-        },        
+        },
        "vmNames": {
             "type": "array",
             "defaultValue": [
@@ -911,11 +911,11 @@
                                                         "LicenseServer": "[parameters('LicenseServer')]"
                                                     }
                                                 ]
-                                            }
-                                        },
-                                        "protectedSettings": {
-                                            "Items": {
-                                                "AdminPassword": "[parameters('adminPasswd')]"
+                                            },
+                                            "protectedSettings": {
+                                                "Items": {
+                                                    "AdminPassword": "[parameters('adminPasswd')]"
+                                                }
                                             }
                                         }
                                     }

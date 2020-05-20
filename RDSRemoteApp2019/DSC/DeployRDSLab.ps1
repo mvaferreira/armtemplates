@@ -5,9 +5,9 @@
         [Array]$RDSParameters
     )
 
-    $DomainName = $RDSParameters[0]
-    $Admincreds = $RDSParameters[1]
-    $DNSServer = $RDSParameters[2]
+    $DomainName = $RDSParameters[0].DomainName
+    $Admincreds = $RDSParameters[0].AdminCreds
+    $DNSServer = $RDSParameters[0].DNSServer
     
     Import-DscResource -ModuleName PSDesiredStateConfiguration,xActiveDirectory,xNetworking,ComputerManagementDSC,xComputerManagement
     [PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
@@ -98,9 +98,9 @@ Configuration RDWebGateway
         [Array]$RDSParameters
     )
 
-    $DomainName = $RDSParameters[0]
-    $Admincreds = $RDSParameters[1]
-    $DNSServer = $RDSParameters[2]
+    $DomainName = $RDSParameters[0].DomainName
+    $Admincreds = $RDSParameters[0].AdminCreds
+    $DNSServer = $RDSParameters[0].DNSServer
     
     Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement
     [PSCredential]$Creds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
@@ -167,9 +167,9 @@ Configuration RDSessionHost
         [Array]$RDSParameters
     )
 
-    $DomainName = $RDSParameters[0]
-    $Admincreds = $RDSParameters[1]
-    $DNSServer = $RDSParameters[2]
+    $DomainName = $RDSParameters[0].DomainName
+    $Admincreds = $RDSParameters[0].AdminCreds
+    $DNSServer = $RDSParameters[0].DNSServer
     
     Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement
     [PSCredential]$Creds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
@@ -230,9 +230,9 @@ Configuration RDLicenseServer
         [Array]$RDSParameters
     )
 
-    $DomainName = $RDSParameters[0]
-    $Admincreds = $RDSParameters[1]
-    $DNSServer = $RDSParameters[2]
+    $DomainName = $RDSParameters[0].DomainName
+    $Admincreds = $RDSParameters[0].AdminCreds
+    $DNSServer = $RDSParameters[0].DNSServer
     
     Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement
     [PSCredential]$Creds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
@@ -293,24 +293,24 @@ Configuration RDSDeployment
         [Array]$RDSParameters
     )
 
-    $DomainName = $RDSParameters[0]
-    $Admincreds = $RDSParameters[1]
-    $DNSServer = $RDSParameters[2]
+    $DomainName = $RDSParameters[0].DomainName
+    $Admincreds = $RDSParameters[0].AdminCreds
+    $DNSServer = $RDSParameters[0].DNSServer
 
     # Connection Broker Node name
-    $ConnectionBroker = $RDSParameters[3]
+    $ConnectionBroker = $RDSParameters[0].ConnectionBroker
     
     # Web Access Node name
-    $WebAccessServer = $RDSParameters[4]
+    $WebAccessServer = $RDSParameters[0].WebAccessServer
 
     # Gateway external FQDN
-    $ExternalFqdn = $RDSParameters[5]
+    $ExternalFqdn = $RDSParameters[0].ExternalFqdn
     
     # RD Session Host name
-    $SessionHost = $RDSParameters[6]
+    $SessionHost = $RDSParameters[0].SessionHost
 
     # RD License Server name
-    $LicenseServer = $RDSParameters[7]
+    $LicenseServer = $RDSParameters[0].LicenseServer
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration -ModuleVersion 1.1
     Import-DscResource -ModuleName xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement,xRemoteDesktopSessionHost
