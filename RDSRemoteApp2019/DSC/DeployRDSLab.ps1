@@ -2,17 +2,15 @@
 {
     Param(
         [Parameter(Mandatory)]
-        [String]$DomainName,
-
-        [Parameter(Mandatory)]
-        [System.Management.Automation.PSCredential]$Admincreds,
-        
-        [Parameter(Mandatory)]
-        [String]$DNSServer        
+        [Array]$RDSParameters
     )
+
+    $DomainName = $RDSParameters[0]
+    $Admincreds = $RDSParameters[1]
+    $DNSServer = $RDSParameters[2]
     
     Import-DscResource -ModuleName PSDesiredStateConfiguration,xActiveDirectory,xNetworking,ComputerManagementDSC,xComputerManagement
-    [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
+    [PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
     $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
     $InterfaceAlias = $($Interface.Name)    
 
@@ -68,7 +66,7 @@
 
         xDnsServerAddress DnsServerAddress
         {
-            Address        = '127.0.0.1'
+            Address        = $DNSServer
             InterfaceAlias = $InterfaceAlias
             AddressFamily  = 'IPv4'
             DependsOn = "[WindowsFeature]DNS"
@@ -97,17 +95,15 @@ Configuration RDWebGateway
 {
     Param(
         [Parameter(Mandatory)]
-        [String]$DomainName,
-
-        [Parameter(Mandatory)]
-        [System.Management.Automation.PSCredential]$Admincreds,
-        
-        [Parameter(Mandatory)]
-        [String]$DNSServer
+        [Array]$RDSParameters
     )
+
+    $DomainName = $RDSParameters[0]
+    $Admincreds = $RDSParameters[1]
+    $DNSServer = $RDSParameters[2]
     
     Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement
-    [System.Management.Automation.PSCredential]$Creds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
+    [PSCredential]$Creds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
     $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
     $InterfaceAlias = $($Interface.Name)
 
@@ -160,6 +156,318 @@ Configuration RDWebGateway
             DomainName = $DomainName
             Credential = $Creds
             DependsOn = "[WaitForADDomain]WaitADDomain" 
+        }
+    }
+}
+
+Configuration RDSessionHost
+{
+    Param(
+        [Parameter(Mandatory)]
+        [Array]$RDSParameters
+    )
+
+    $DomainName = $RDSParameters[0]
+    $Admincreds = $RDSParameters[1]
+    $DNSServer = $RDSParameters[2]
+    
+    Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement
+    [PSCredential]$Creds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
+    $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
+    $InterfaceAlias = $($Interface.Name)
+
+    Node localhost
+    {
+        LocalConfigurationManager
+        {
+            RebootNodeIfNeeded = $true
+            ConfigurationMode = "ApplyOnly"
+        }
+
+        WindowsFeature RDS-RD-Server
+        {
+            Ensure = "Present"
+            Name = "RDS-RD-Server"
+        }
+
+        WindowsFeature RSAT-AD-PowerShell
+        {
+            Ensure = "Present"
+            Name = "RSAT-AD-PowerShell"
+        }
+
+        xDnsServerAddress DnsServerAddress
+        {
+            Address        = $DNSServer
+            InterfaceAlias = $InterfaceAlias
+            AddressFamily  = 'IPv4'
+        }
+
+        WaitForADDomain WaitADDomain
+        {
+            DomainName = $DomainName
+            Credential = $Creds
+            WaitTimeout = 2400
+            RestartCount = 30
+            WaitForValidCredentials = $True
+            DependsOn = @("[xDnsServerAddress]DnsServerAddress","[WindowsFeature]RSAT-AD-PowerShell")
+        }
+
+        xComputer DomainJoin
+        {
+            Name = $env:COMPUTERNAME
+            DomainName = $DomainName
+            Credential = $Creds
+            DependsOn = "[WaitForADDomain]WaitADDomain" 
+        }        
+    }    
+}
+
+Configuration RDLicenseServer
+{
+    Param(
+        [Parameter(Mandatory)]
+        [Array]$RDSParameters
+    )
+
+    $DomainName = $RDSParameters[0]
+    $Admincreds = $RDSParameters[1]
+    $DNSServer = $RDSParameters[2]
+    
+    Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement
+    [PSCredential]$Creds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
+    $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
+    $InterfaceAlias = $($Interface.Name)
+
+    Node localhost
+    {
+        LocalConfigurationManager
+        {
+            RebootNodeIfNeeded = $true
+            ConfigurationMode = "ApplyOnly"
+        }
+
+        WindowsFeature RDS-Licensing
+        {
+            Ensure = "Present"
+            Name = "RDS-Licensing"
+        }
+
+        WindowsFeature RSAT-AD-PowerShell
+        {
+            Ensure = "Present"
+            Name = "RSAT-AD-PowerShell"
+        }
+
+        xDnsServerAddress DnsServerAddress
+        {
+            Address        = $DNSServer
+            InterfaceAlias = $InterfaceAlias
+            AddressFamily  = 'IPv4'
+        }
+
+        WaitForADDomain WaitADDomain
+        {
+            DomainName = $DomainName
+            Credential = $Creds
+            WaitTimeout = 2400
+            RestartCount = 30
+            WaitForValidCredentials = $True
+            DependsOn = @("[xDnsServerAddress]DnsServerAddress","[WindowsFeature]RSAT-AD-PowerShell")
+        }
+
+        xComputer DomainJoin
+        {
+            Name = $env:COMPUTERNAME
+            DomainName = $DomainName
+            Credential = $Creds
+            DependsOn = "[WaitForADDomain]WaitADDomain" 
+        }        
+    }    
+}
+
+Configuration RDSDeployment
+{
+    Param(
+        [Parameter(Mandatory)]
+        [Array]$RDSParameters
+    )
+
+    $DomainName = $RDSParameters[0]
+    $Admincreds = $RDSParameters[1]
+    $DNSServer = $RDSParameters[2]
+
+    # Connection Broker Node name
+    $ConnectionBroker = $RDSParameters[3]
+    
+    # Web Access Node name
+    $WebAccessServer = $RDSParameters[4]
+
+    # Gateway external FQDN
+    $ExternalFqdn = $RDSParameters[5]
+    
+    # RD Session Host name
+    $SessionHost = $RDSParameters[6]
+
+    # RD License Server name
+    $LicenseServer = $RDSParameters[7]
+
+    Import-DscResource -ModuleName PSDesiredStateConfiguration -ModuleVersion 1.1
+    Import-DscResource -ModuleName xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement,xRemoteDesktopSessionHost
+    [PSCredential]$Creds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
+    $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
+    $InterfaceAlias = $($Interface.Name)
+
+    if (-not $collectionName)         { $collectionName = "Desktop Collection" }
+    if (-not $collectionDescription)  { $collectionDescription = "A sample RD Session collection up in cloud." }
+
+    Node localhost
+    {
+        LocalConfigurationManager
+        {
+            RebootNodeIfNeeded = $true
+            ConfigurationMode = "ApplyOnly"
+        }
+
+        WindowsFeature RSAT-RDS-Tools
+        {
+            Ensure = "Present"
+            Name = "RSAT-RDS-Tools"
+            IncludeAllSubFeature = $true
+        }        
+
+        WindowsFeature RSAT-AD-PowerShell
+        {
+            Ensure = "Present"
+            Name = "RSAT-AD-PowerShell"
+        }
+
+        xDnsServerAddress DnsServerAddress
+        {
+            Address        = $DNSServer
+            InterfaceAlias = $InterfaceAlias
+            AddressFamily  = 'IPv4'
+        }
+
+        WaitForADDomain WaitADDomain
+        {
+            DomainName = $DomainName
+            Credential = $Creds
+            WaitTimeout = 2400
+            RestartCount = 30
+            WaitForValidCredentials = $True
+            DependsOn = @("[xDnsServerAddress]DnsServerAddress","[WindowsFeature]RSAT-AD-PowerShell")
+        }
+
+        xComputer DomainJoin
+        {
+            Name = $env:COMPUTERNAME
+            DomainName = $DomainName
+            Credential = $Creds
+            DependsOn = "[WaitForADDomain]WaitADDomain" 
+        }
+
+        Registry RdmsEnableUILog
+        {
+            Ensure = "Present"
+            Key = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RDMS"
+            ValueName = "EnableUILog"
+            ValueType = "Dword"
+            ValueData = "1"
+        }
+ 
+        Registry EnableDeploymentUILog
+        {
+            Ensure = "Present"
+            Key = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RDMS"
+            ValueName = "EnableDeploymentUILog"
+            ValueType = "Dword"
+            ValueData = "1"
+        }
+ 
+        Registry EnableTraceLog
+        {
+            Ensure = "Present"
+            Key = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RDMS"
+            ValueName = "EnableTraceLog"
+            ValueType = "Dword"
+            ValueData = "1"
+        }
+ 
+        Registry EnableTraceToFile
+        {
+            Ensure = "Present"
+            Key = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\RDMS"
+            ValueName = "EnableTraceToFile"
+            ValueType = "Dword"
+            ValueData = "1"
+        }
+
+        xRDSessionDeployment Deployment
+        {
+            ConnectionBroker = $ConnectionBroker
+            WebAccessServer = $WebAccessServer
+            SessionHost = $SessionHost
+            PsDscRunAsCredential = $Creds
+            DependsOn = "[xComputer]DomainJoin"
+        }
+
+        xRDServer AddLicenseServer
+        {
+            Role = 'RDS-Licensing'
+            Server = $LicenseServer
+            PsDscRunAsCredential = $Creds
+            DependsOn = "[xRDSessionDeployment]Deployment"
+        }
+
+        xRDLicenseConfiguration LicenseConfiguration
+        {
+            ConnectionBroker = $ConnectionBroker
+            LicenseServer = @( $LicenseServer )
+            LicenseMode = 'PerUser'
+            PsDscRunAsCredential = $Creds
+            DependsOn = "[xRDServer]AddLicenseServer"
+        }
+
+        xRDServer AddGatewayServer
+        {
+            Role = 'RDS-Gateway'
+            Server = $WebAccessServer
+            GatewayExternalFqdn = $ExternalFqdn
+            PsDscRunAsCredential = $Creds
+            DependsOn = "[xRDLicenseConfiguration]LicenseConfiguration"
+        }
+
+        xRDGatewayConfiguration GatewayConfiguration
+        {
+            ConnectionBroker = $ConnectionBroker
+            GatewayServer = $WebAccessServer
+            ExternalFqdn = $ExternalFqdn
+            GatewayMode = 'Custom'
+            LogonMethod = 'Password'
+            UseCachedCredentials = $true
+            BypassLocal = $false
+            PsDscRunAsCredential = $Creds
+            DependsOn = "[xRDServer]AddGatewayServer"
+        }
+        
+        xRDSessionCollection Collection
+        {
+            ConnectionBroker = $ConnectionBroker
+            CollectionName = $CollectionName
+            CollectionDescription = $CollectionDescription
+            SessionHost = $SessionHost
+            PsDscRunAsCredential = $Creds
+            DependsOn = "[xRDGatewayConfiguration]GatewayConfiguration"
+        }
+
+        xRDRemoteApp Calc 
+        { 
+            CollectionName = $CollectionName 
+            DisplayName = "Calculator" 
+            FilePath = "C:\Windows\System32\calc.exe" 
+            Alias = "calc" 
+            DependsOn = "[xRDSessionCollection]Collection" 
         }
     }
 }

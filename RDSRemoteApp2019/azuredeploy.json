@@ -9,6 +9,10 @@
                 "description": "Define the project name or prefix for all objects."
             }
         },
+        "ExternalFqdn": {
+            "type": "string",
+            "defaultValue": "remoteapps.contoso.com"
+        },        
        "vmNames": {
             "type": "array",
             "defaultValue": [
@@ -60,7 +64,7 @@
             "metadata": {
                 "description": "How many License/File Servers would you like to deploy?"
             }            
-        },      
+        },   
         "vmProperties": {
             "type": "array",
             "defaultValue": [
@@ -83,21 +87,21 @@
                     "count": "[parameters('rdcbCount')]",
                     "intLbBackEndPool": "rds-brokers-int-pool",
                     "pubLbBackEndPool": "",
-                    "dscFunction": ""
+                    "dscFunction": "DeployRDSLab.ps1\\RDSDeployment"
                 },
                 { // Remote Desktop Session Host VMs
                     "name": "[parameters('vmNames')[3]]",
                     "count": "[parameters('rdshCount')]",
                     "intLbBackEndPool": "",
                     "pubLbBackEndPool": "",
-                    "dscFunction": ""
+                    "dscFunction": "DeployRDSLab.ps1\\RDSessionHost"
                 },
                 { // License Server/File Server VMs
                     "name": "[parameters('vmNames')[4]]",
                     "count": "[parameters('lsfsCount')]",
                     "intLbBackEndPool": "",
                     "pubLbBackEndPool": "",
-                    "dscFunction": ""
+                    "dscFunction": "DeployRDSLab.ps1\\RDLicenseServer"
                 }                               
             ],
             "metadata": {
@@ -659,6 +663,21 @@
                     "firstDcIP": {
                         "value": "[variables('firstDcIP')]"
                     },
+                    "ConnectionBroker": {
+                        "value": "[concat(parameters('vmProperties')[2].name,'1')]"
+                    },
+                    "WebAccessServer": {
+                        "value": "[concat(parameters('vmProperties')[1].name,'1')]"
+                    },
+                    "SessionHost": {
+                        "value": "[concat(parameters('vmProperties')[3].name,'1')]"
+                    },
+                    "LicenseServer": {
+                        "value": "[concat(parameters('vmProperties')[4].name,'1')]"
+                    },
+                    "ExternalFqdn": {
+                        "value": "[parameters('ExternalFqdn')]"
+                    },                                    
                     "dscFunction": {
                         "value": "[parameters('vmProperties')[copyIndex()].dscFunction]"
                     },
@@ -715,6 +734,21 @@
                         "firstDcIP": {
                             "type": "string"
                         },
+                        "ConnectionBroker": {
+                            "type": "string"
+                        },
+                        "WebAccessServer": {
+                            "type": "string"
+                        },
+                        "SessionHost": {
+                            "type": "string"
+                        },
+                        "LicenseServer": {
+                            "type": "string"
+                        },
+                        "ExternalFqdn": {
+                            "type": "string"
+                        },                                                                                                                                                                     
                         "dscFunction": {
                             "type": "string"
                         },
@@ -862,12 +896,21 @@
                                             "ModulesUrl": "[concat(parameters('dscLocation'),'DSC/DeployRDSLab.zip')]",
                                             "ConfigurationFunction": "[parameters('dscFunction')]",
                                             "Properties": {
-                                                "DomainName": "[parameters('adDomainName')]",
-                                                "DNSServer": "[parameters('firstDcIP')]",
-                                                "AdminCreds": {
-                                                    "UserName": "[parameters('adminUser')]",
-                                                    "Password": "PrivateSettingsRef:AdminPassword"
-                                                }
+                                                "RDSParameters": [
+                                                    {
+                                                        "DomainName": "[parameters('adDomainName')]",
+                                                        "AdminCreds": {
+                                                            "UserName": "[parameters('adminUser')]",
+                                                            "Password": "PrivateSettingsRef:AdminPassword"
+                                                        },
+                                                        "DNSServer": "[parameters('firstDcIP')]",
+                                                        "ConnectionBroker": "[parameters('ConnectionBroker')]",
+                                                        "WebAccessServer": "[parameters('WebAccessServer')]",
+                                                        "ExternalFqdn": "[parameters('ExternalFqdn')]",
+                                                        "SessionHost": "[parameters('SessionHost')]",
+                                                        "LicenseServer": "[parameters('LicenseServer')]"
+                                                    }
+                                                ]
                                             }
                                         },
                                         "protectedSettings": {
