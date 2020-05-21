@@ -318,7 +318,7 @@ Configuration RDSDeployment
 
     # RD License Server name
     $LicenseServer = $($RDSParameters[0].LicenseServer + "." + $DomainName)
-        
+
     # Gateway external FQDN
     $ExternalFqdn = $RDSParameters[0].ExternalFqdn
 
@@ -475,8 +475,10 @@ Configuration RDSDeployment
         { 
             CollectionName = $CollectionName 
             DisplayName = "Calculator" 
-            FilePath = "C:\Windows\System32\calc.exe" 
-            Alias = "calc" 
+            FilePath = "%windir%\system32\win32calc.exe"
+            IconIndex = 0
+            IconPath = "%windir%\system32\win32calc.exe"
+            Alias = "win32calc" 
             DependsOn = "[xRDSessionCollection]Collection" 
         }
     }

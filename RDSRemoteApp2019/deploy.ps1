@@ -16,7 +16,7 @@ $parameterFile = ".\azuredeploy.parameters.lab.json"
 
 Write-host "[$(Get-Date) Deployment started..."
 
-New-AzResourceGroupDeployment -Name "rds2019deployment" `
+New-AzResourceGroupDeployment -Name "RDS2019Deployment" `
     -ResourceGroupName $RG `
     -TemplateFile $templateFile `
     -TemplateParameterFile $parameterFile `

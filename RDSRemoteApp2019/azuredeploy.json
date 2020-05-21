@@ -607,7 +607,7 @@
         { // Multiple deployments, PIPs, NICs, VMs
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2019-10-01",
-            "name": "[concat('nestedTemplate',copyIndex())]",
+            "name": "[concat('NestedDeployment',copyIndex())]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks',concat(parameters('projectName'),'vnet'))]",
                 "[concat(parameters('projectName'),'intlb')]",
