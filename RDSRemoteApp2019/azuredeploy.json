@@ -896,13 +896,13 @@
                                             "ModulesUrl": "[concat(parameters('dscLocation'),'DSC/DeployRDSLab.zip')]",
                                             "ConfigurationFunction": "[parameters('dscFunction')]",
                                             "Properties": {
+                                                "AdminCreds": {
+                                                    "UserName": "[parameters('adminUser')]",
+                                                    "Password": "PrivateSettingsRef:AdminPassword"
+                                                },
                                                 "RDSParameters": [
                                                     {
                                                         "DomainName": "[parameters('adDomainName')]",
-                                                        "AdminCreds": {
-                                                            "UserName": "[parameters('adminUser')]",
-                                                            "Password": "PrivateSettingsRef:AdminPassword"
-                                                        },
                                                         "DNSServer": "[parameters('firstDcIP')]",
                                                         "ConnectionBroker": "[parameters('ConnectionBroker')]",
                                                         "WebAccessServer": "[parameters('WebAccessServer')]",

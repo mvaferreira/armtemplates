@@ -2,17 +2,19 @@
 {
     Param(
         [Parameter(Mandatory)]
+        [System.Management.Automation.PSCredential]$Admincreds,
+
+        [Parameter(Mandatory)]
         [Array]$RDSParameters
     )
 
     $DomainName = $RDSParameters[0].DomainName
-    $Admincreds = $RDSParameters[0].AdminCreds
     $DNSServer = $RDSParameters[0].DNSServer
     
     Import-DscResource -ModuleName PSDesiredStateConfiguration,xActiveDirectory,xNetworking,ComputerManagementDSC,xComputerManagement
-    [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
+    [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
     $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
-    $InterfaceAlias = $($Interface.Name)  
+    $InterfaceAlias = $($Interface.Name)
 
     Node localhost
     {
@@ -95,15 +97,17 @@ Configuration RDWebGateway
 {
     Param(
         [Parameter(Mandatory)]
+        [System.Management.Automation.PSCredential]$Admincreds,
+
+        [Parameter(Mandatory)]
         [Array]$RDSParameters
     )
 
     $DomainName = $RDSParameters[0].DomainName
-    $Admincreds = $RDSParameters[0].AdminCreds
     $DNSServer = $RDSParameters[0].DNSServer
     
     Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement
-    [System.Management.Automation.PSCredential]$Creds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
+    [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
     $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
     $InterfaceAlias = $($Interface.Name)
 
@@ -143,7 +147,7 @@ Configuration RDWebGateway
         WaitForADDomain WaitADDomain
         {
             DomainName = $DomainName
-            Credential = $Creds
+            Credential = $DomainCreds
             WaitTimeout = 1200
             RestartCount = 15
             WaitForValidCredentials = $True
@@ -154,7 +158,7 @@ Configuration RDWebGateway
         {
             Name = $env:COMPUTERNAME
             DomainName = $DomainName
-            Credential = $Creds
+            Credential = $DomainCreds
             DependsOn = "[WaitForADDomain]WaitADDomain" 
         }
     }
@@ -164,15 +168,17 @@ Configuration RDSessionHost
 {
     Param(
         [Parameter(Mandatory)]
+        [System.Management.Automation.PSCredential]$Admincreds,
+
+        [Parameter(Mandatory)]
         [Array]$RDSParameters
     )
 
     $DomainName = $RDSParameters[0].DomainName
-    $Admincreds = $RDSParameters[0].AdminCreds
     $DNSServer = $RDSParameters[0].DNSServer
     
     Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement
-    [System.Management.Automation.PSCredential]$Creds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
+    [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
     $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
     $InterfaceAlias = $($Interface.Name)
 
@@ -206,7 +212,7 @@ Configuration RDSessionHost
         WaitForADDomain WaitADDomain
         {
             DomainName = $DomainName
-            Credential = $Creds
+            Credential = $DomainCreds
             WaitTimeout = 2400
             RestartCount = 30
             WaitForValidCredentials = $True
@@ -217,7 +223,7 @@ Configuration RDSessionHost
         {
             Name = $env:COMPUTERNAME
             DomainName = $DomainName
-            Credential = $Creds
+            Credential = $DomainCreds
             DependsOn = "[WaitForADDomain]WaitADDomain" 
         }        
     }    
@@ -227,15 +233,17 @@ Configuration RDLicenseServer
 {
     Param(
         [Parameter(Mandatory)]
+        [System.Management.Automation.PSCredential]$Admincreds,
+
+        [Parameter(Mandatory)]
         [Array]$RDSParameters
     )
 
     $DomainName = $RDSParameters[0].DomainName
-    $Admincreds = $RDSParameters[0].AdminCreds
     $DNSServer = $RDSParameters[0].DNSServer
     
     Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement
-    [System.Management.Automation.PSCredential]$Creds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
+    [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
     $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
     $InterfaceAlias = $($Interface.Name)
 
@@ -269,7 +277,7 @@ Configuration RDLicenseServer
         WaitForADDomain WaitADDomain
         {
             DomainName = $DomainName
-            Credential = $Creds
+            Credential = $DomainCreds
             WaitTimeout = 2400
             RestartCount = 30
             WaitForValidCredentials = $True
@@ -280,7 +288,7 @@ Configuration RDLicenseServer
         {
             Name = $env:COMPUTERNAME
             DomainName = $DomainName
-            Credential = $Creds
+            Credential = $DomainCreds
             DependsOn = "[WaitForADDomain]WaitADDomain" 
         }        
     }    
@@ -290,11 +298,13 @@ Configuration RDSDeployment
 {
     Param(
         [Parameter(Mandatory)]
+        [System.Management.Automation.PSCredential]$Admincreds,
+
+        [Parameter(Mandatory)]
         [Array]$RDSParameters
     )
 
     $DomainName = $RDSParameters[0].DomainName
-    $Admincreds = $RDSParameters[0].AdminCreds
     $DNSServer = $RDSParameters[0].DNSServer
 
     # Connection Broker Node name
@@ -314,7 +324,7 @@ Configuration RDSDeployment
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration -ModuleVersion 1.1
     Import-DscResource -ModuleName xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement,xRemoteDesktopSessionHost
-    [System.Management.Automation.PSCredential]$Creds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
+    [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
     $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
     $InterfaceAlias = $($Interface.Name)
 
@@ -352,7 +362,7 @@ Configuration RDSDeployment
         WaitForADDomain WaitADDomain
         {
             DomainName = $DomainName
-            Credential = $Creds
+            Credential = $DomainCreds
             WaitTimeout = 2400
             RestartCount = 30
             WaitForValidCredentials = $True
@@ -363,7 +373,7 @@ Configuration RDSDeployment
         {
             Name = $env:COMPUTERNAME
             DomainName = $DomainName
-            Credential = $Creds
+            Credential = $DomainCreds
             DependsOn = "[WaitForADDomain]WaitADDomain" 
         }
 
@@ -408,7 +418,7 @@ Configuration RDSDeployment
             ConnectionBroker = $ConnectionBroker
             WebAccessServer = $WebAccessServer
             SessionHost = $SessionHost
-            PsDscRunAsCredential = $Creds
+            PsDscRunAsCredential = $DomainCreds
             DependsOn = "[xComputer]DomainJoin"
         }
 
@@ -416,7 +426,7 @@ Configuration RDSDeployment
         {
             Role = 'RDS-Licensing'
             Server = $LicenseServer
-            PsDscRunAsCredential = $Creds
+            PsDscRunAsCredential = $DomainCreds
             DependsOn = "[xRDSessionDeployment]Deployment"
         }
 
@@ -425,7 +435,7 @@ Configuration RDSDeployment
             ConnectionBroker = $ConnectionBroker
             LicenseServer = @( $LicenseServer )
             LicenseMode = 'PerUser'
-            PsDscRunAsCredential = $Creds
+            PsDscRunAsCredential = $DomainCreds
             DependsOn = "[xRDServer]AddLicenseServer"
         }
 
@@ -434,7 +444,7 @@ Configuration RDSDeployment
             Role = 'RDS-Gateway'
             Server = $WebAccessServer
             GatewayExternalFqdn = $ExternalFqdn
-            PsDscRunAsCredential = $Creds
+            PsDscRunAsCredential = $DomainCreds
             DependsOn = "[xRDLicenseConfiguration]LicenseConfiguration"
         }
 
@@ -447,7 +457,7 @@ Configuration RDSDeployment
             LogonMethod = 'Password'
             UseCachedCredentials = $true
             BypassLocal = $false
-            PsDscRunAsCredential = $Creds
+            PsDscRunAsCredential = $DomainCreds
             DependsOn = "[xRDServer]AddGatewayServer"
         }
         
@@ -457,7 +467,7 @@ Configuration RDSDeployment
             CollectionName = $CollectionName
             CollectionDescription = $CollectionDescription
             SessionHost = $SessionHost
-            PsDscRunAsCredential = $Creds
+            PsDscRunAsCredential = $DomainCreds
             DependsOn = "[xRDGatewayConfiguration]GatewayConfiguration"
         }
 
