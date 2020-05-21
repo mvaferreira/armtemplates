@@ -910,14 +910,14 @@
                                                         "SessionHost": "[parameters('SessionHost')]",
                                                         "LicenseServer": "[parameters('LicenseServer')]"
                                                     }
-                                                ]
-                                            },
-                                            "protectedSettings": {
-                                                "Items": {
-                                                    "AdminPassword": "[parameters('adminPasswd')]"
-                                                }
+                                                ]                                               
                                             }
-                                        }
+                                        },
+                                        "protectedSettings": {
+                                            "Items": {
+                                                "AdminPassword": "[parameters('adminPasswd')]"
+                                            }
+                                        }                                                                  
                                     }
                                 }
                             ],

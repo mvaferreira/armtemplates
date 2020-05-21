@@ -308,19 +308,19 @@ Configuration RDSDeployment
     $DNSServer = $RDSParameters[0].DNSServer
 
     # Connection Broker Node name
-    $ConnectionBroker = $RDSParameters[0].ConnectionBroker
+    $ConnectionBroker = $($RDSParameters[0].ConnectionBroker + "." + $DomainName)
     
     # Web Access Node name
-    $WebAccessServer = $RDSParameters[0].WebAccessServer
+    $WebAccessServer = $($RDSParameters[0].WebAccessServer + "." + $DomainName)
 
-    # Gateway external FQDN
-    $ExternalFqdn = $RDSParameters[0].ExternalFqdn
-    
     # RD Session Host name
-    $SessionHost = $RDSParameters[0].SessionHost
+    $SessionHost = $($RDSParameters[0].SessionHost + "." + $DomainName)
 
     # RD License Server name
-    $LicenseServer = $RDSParameters[0].LicenseServer
+    $LicenseServer = $($RDSParameters[0].LicenseServer + "." + $DomainName)
+        
+    # Gateway external FQDN
+    $ExternalFqdn = $RDSParameters[0].ExternalFqdn
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration -ModuleVersion 1.1
     Import-DscResource -ModuleName xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement,xRemoteDesktopSessionHost
