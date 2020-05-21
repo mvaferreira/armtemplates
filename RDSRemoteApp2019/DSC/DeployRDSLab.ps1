@@ -328,8 +328,8 @@ Configuration RDSDeployment
     $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
     $InterfaceAlias = $($Interface.Name)
 
-    if (-not $collectionName)         { $collectionName = "Desktop Collection" }
-    if (-not $collectionDescription)  { $collectionDescription = "A sample RD Session collection up in cloud." }
+    if (-not $collectionName)         { $collectionName = "RemoteApps" }
+    if (-not $collectionDescription)  { $collectionDescription = "Remote Desktop Services Apps" }
 
     Node localhost
     {
@@ -469,16 +469,6 @@ Configuration RDSDeployment
             SessionHost = $SessionHost
             PsDscRunAsCredential = $DomainCreds
             DependsOn = "[xRDGatewayConfiguration]GatewayConfiguration"
-        }
-
-        xRDRemoteApp Calc 
-        { 
-            CollectionName = $CollectionName 
-            DisplayName = "Calculator" 
-            FilePath = "%windir%\system32\win32calc.exe"
-            IconPath = "%windir%\WinSxS\amd64_microsoft-windows-dxp-deviceexperience_31bf3856ad364e35_10.0.17763.1_none_37eb15a951f0aa9d\netfol.ico"
-            Alias = "win32calc" 
-            DependsOn = "[xRDSessionCollection]Collection" 
         }
     }
 }
