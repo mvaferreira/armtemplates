@@ -9,10 +9,26 @@
                 "description": "Define the project name or prefix for all objects."
             }
         },
+        "DNSEntry": {
+            "type": "string",
+            "defaultValue": "remoteapps"
+        },        
+        "DNSZone": {
+            "type": "string",
+            "defaultValue": "contoso.com"
+        },
+        "DNSZoneResourceGroup": {
+            "type": "string",
+            "defaultValue": "rgdns"
+        },
+        "CreateDNSEntry": {
+            "type": "bool",
+            "defaultValue": true
+        },
         "ExternalFqdn": {
             "type": "string",
-            "defaultValue": "remoteapps.contoso.com"
-        },
+            "defaultValue": "[concat(parameters('DNSEntry'),'.',parameters('DNSZone'))]"
+        },             
        "vmNames": {
             "type": "array",
             "defaultValue": [
@@ -455,6 +471,50 @@
                 }
             }
         }, // Public Load Balancer PIP
+        { // External DNS CNAME to Public Load Balancer PIP
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2019-10-01",
+            "name": "[concat(parameters('projectName'),'dnsupdate')]",
+            "condition": "[parameters('CreateDNSEntry')]",
+            "dependsOn": [
+                "[concat(parameters('projectName'),'lbwebgwpip')]"
+            ],
+            "resourceGroup": "[parameters('DNSZoneResourceGroup')]",
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {},
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {},
+                    "variables": {},
+                    "resources": [
+                        {
+                            "name": "[parameters('DNSZone')]",
+                            "type": "Microsoft.Network/dnsZones",
+                            "apiVersion": "2018-05-01",
+                            "location": "global",
+                            "properties": {}
+                        },
+                        {
+                            "name": "[concat(parameters('DNSZone'),'/',parameters('DNSEntry'))]",
+                            "type": "Microsoft.Network/dnszones/CNAME",
+                            "apiVersion": "2018-05-01",
+                            "location": "global",
+                            "dependsOn": [
+                                "[parameters('DNSZone')]"
+                            ],
+                            "properties": {
+                                "TTL": 1200,
+                                "CNAMERecord": {
+                                    "cname": "[reference(concat(parameters('projectName'),'lbwebgwpip')).dnsSettings.fqdn]"
+                                }
+                            }
+                        }
+                    ]
+                }                
+            }    
+        }, // External DNS CNAME to Public Load Balancer PIP
         { // Public Load Balancer
             "name": "[concat(parameters('projectName'),'publb')]",
             "type": "Microsoft.Network/loadBalancers",
