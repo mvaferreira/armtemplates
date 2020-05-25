@@ -987,14 +987,14 @@
                                     }
                                 },
                                 {
-                                    "name": "[concat(parameters('vmName'),copyIndex(1),'/pwshext')]",
                                     "type": "Microsoft.Compute/virtualMachines/extensions",
-                                    "apiVersion": "2019-07-01",
+                                    "apiVersion": "2019-12-01",
+                                    "name": "[concat(parameters('vmName'),copyIndex(1),'/pwshext')]",
                                     "location": "[resourceGroup().location]",
                                     "condition": "[and(contains(parameters('vmName'),'cb'),equals(copyIndex(1),1),parameters('requestCert'))]",
                                     "dependsOn": [
                                         "[resourceId('Microsoft.Compute/virtualMachines',concat(parameters('vmName'),copyIndex(1)))]",
-                                        "[concat(parameters('vmName'),copyIndex(1),'/dscext')]"
+                                        "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('vmName'),copyIndex(1)),'dscext')]"
                                     ],
                                     "properties": {
                                         "publisher": "Microsoft.Compute",
@@ -1005,7 +1005,7 @@
                                             "fileUris": [
                                                 "[variables('scriptDownload')]"
                                             ]
-                                        },                                       
+                                        },
                                         "protectedSettings": {
                                             "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('certScriptName'),' -ExternalFqdn ',parameters('ExternalFqdn'),' -CertPasswd ',parameters('adminPasswd'))]"
                                         }

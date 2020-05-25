@@ -3,8 +3,10 @@ Param(
     [string]$ExternalFqdn,
 
     [Parameter(Mandatory)]
-    [securestring]$CertPasswd
+    [string]$Passwd
 )
+
+$CertPasswd = ConvertTo-SecureString -String $Passwd -Force -AsPlainText
 
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
 Install-Module -Name Posh-ACME -Scope AllUsers -Force
