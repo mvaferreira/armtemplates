@@ -189,7 +189,7 @@
         "firstDcIP": "[concat(parameters('vNetPrefix'),'.0.100')]",
         "nsgRef": "[resourceId('Microsoft.Network/networkSecurityGroups',concat(parameters('projectName'),'nsg'))]",
         "subNetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets',variables('vNetName'),concat(parameters('projectName'),'main'))]",
-        "scriptName": "PrepareDSC.ps1"
+        "certScriptName": "RequestCertificate.ps1"
     },
     "resources": [
         { // Storage Account
@@ -744,8 +744,11 @@
                     "dscLocation": {
                         "value": "[parameters('_artifactsLocation')]"
                     },
-                    "dscScriptName": {
-                        "value": "[variables('scriptName')]"
+                    "certScriptName": {
+                        "value": "[variables('certScriptName')]"
+                    },
+                    "requestCert": {
+                        "value": "[parameters('CreateDNSEntry')]"
                     }
                 },
                 "template": {
@@ -815,12 +818,15 @@
                         "dscLocation": {
                             "type": "string"
                         },
-                        "dscScriptName": {
+                        "certScriptName": {
                             "type": "string"
+                        },
+                        "requestCert": {
+                            "type": "bool"
                         }
                     },
                     "variables": {
-                        "scriptDownload": "[uri(parameters('dscLocation'),parameters('dscScriptName'))]",
+                        "scriptDownload": "[uri(parameters('dscLocation'),parameters('certScriptName'))]",
                         "empty": [],
                         "intlbPool": [
                             {
@@ -979,13 +985,38 @@
                                             }
                                         }                                                                  
                                     }
+                                },
+                                {
+                                    "name": "[concat(parameters('vmName'),copyIndex(1),'/pwshext')]",
+                                    "type": "Microsoft.Compute/virtualMachines/extensions",
+                                    "apiVersion": "2019-07-01",
+                                    "location": "[resourceGroup().location]",
+                                    "condition": "[and(contains(parameters('vmName'),'cb'),equals(copyIndex(1),1),parameters('requestCert'))]",
+                                    "dependsOn": [
+                                        "[resourceId('Microsoft.Compute/virtualMachines',concat(parameters('vmName'),copyIndex(1)))]",
+                                        "[concat(parameters('vmName'),copyIndex(1),'/dscext')]"
+                                    ],
+                                    "properties": {
+                                        "publisher": "Microsoft.Compute",
+                                        "type": "CustomScriptExtension",
+                                        "typeHandlerVersion": "1.10",
+                                        "autoUpgradeMinorVersion": true,
+                                        "settings": {
+                                            "fileUris": [
+                                                "[variables('scriptDownload')]"
+                                            ]
+                                        },                                       
+                                        "protectedSettings": {
+                                            "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('certScriptName'),' -ExternalFqdn ',parameters('ExternalFqdn'),' -CertPasswd ',parameters('adminPasswd'))]"
+                                        }
+                                    }
                                 }
                             ],
                             "name": "[concat(parameters('vmName'),copyIndex(1))]",
                             "copy": {
                                 "name": "[concat(parameters('vmName'),'vmcopy')]",
                                 "count": "[parameters('loopCount')]"                                
-                            }                     
+                            }                
                         } // Virtual Machines
                     ]
                 }
