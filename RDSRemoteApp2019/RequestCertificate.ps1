@@ -58,4 +58,4 @@ RequestCert $BrokerFqdn
 Set-RDCertificate -Role RDWebAccess -ImportPath $CertWebGatewayPath -Password $CertPasswd -ConnectionBroker $ServerName
 Set-RDCertificate -Role RDGateway -ImportPath $CertWebGatewayPath -Password $CertPasswd -ConnectionBroker $ServerName
 Set-RDCertificate -Role RDRedirector -ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $ServerName
-Set-RDCertificate -Role RDPublishing-ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $ServerName
+Set-RDCertificate -Role RDPublishing -ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $ServerName

@@ -12,7 +12,7 @@
         "DNSEntry": {
             "type": "string",
             "defaultValue": "remoteapps"
-        },        
+        },
         "DNSZone": {
             "type": "string",
             "defaultValue": "contoso.com"
