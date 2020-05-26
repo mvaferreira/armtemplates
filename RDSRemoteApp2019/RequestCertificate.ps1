@@ -15,7 +15,11 @@ Param(
     [string]$Passwd
 )
 
+$ServerObj = Get-WmiObject -Namespace "root\cimv2" -Class "Win32_ComputerSystem"
+
+$DomainName = $ServerObj.Domain
 $CertPasswd = ConvertTo-SecureString -String $Passwd -Force -AsPlainText
+[System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($ProjectName)",$CertPasswd)
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
@@ -31,7 +35,7 @@ Function RequestCert([string]$Fqdn) {
     $auth = Get-PAOrder | Get-PAAuthorizations | Where-Object { $_.HTTP01Status -eq "Pending" }
     $AcmeBody = Get-KeyAuthorization $auth.HTTP01Token (Get-PAAccount)
 
-    Invoke-Command -ComputerName $WebGatewayServer -ScriptBlock {
+    Invoke-Command -ComputerName $WebGatewayServer -Credential $DomainCreds -ScriptBlock {
         Param($auth, $AcmeBody)
         $AcmePath = "C:\Inetpub\wwwroot\.well-known\acme-challenge"
         New-Item -ItemType Directory -Path $AcmePath -Force
@@ -50,8 +54,7 @@ Function RequestCert([string]$Fqdn) {
     Export-PfxCertificate -Cert Cert:\LocalMachine\My\$Thumbprint -FilePath $CertFullPath -Password $CertPasswd -Force
 }
 
-$ServerObj = Get-WmiObject -Namespace "root\cimv2" -Class "Win32_ComputerSystem"
-$ServerName = $ServerObj.DNSHostName + "." + $ServerObj.Domain
+$ServerName = $ServerObj.DNSHostName + "." + $DomainName
 $CertWebGatewayPath = (Join-path "C:\temp" $($WebGatewayFqdn + ".pfx"))
 $CertBrokerPath = (Join-path "C:\temp" $($BrokerFqdn + ".pfx"))
 RequestCert $WebGatewayFqdn
