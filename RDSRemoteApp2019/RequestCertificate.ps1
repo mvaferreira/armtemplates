@@ -25,6 +25,7 @@ Import-Module RemoteDesktop
 New-Item -ItemType Directory -Path "C:\temp" -Force
 
 Function RequestCert([string]$Fqdn) {
+    Set-PAServer LE_PROD
     New-PAAccount -AcceptTOS -Contact "$($ProjectName)@$($Fqdn)" -Force
     New-PAOrder $Fqdn
     $auth = Get-PAOrder | Get-PAAuthorizations | Where-Object { $_.HTTP01Status -eq "Pending" }

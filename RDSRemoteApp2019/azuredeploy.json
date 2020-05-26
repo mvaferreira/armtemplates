@@ -525,7 +525,7 @@
                                     "cname": "[reference(concat(parameters('projectName'),'lbwebgwpip')).dnsSettings.fqdn]"
                                 }
                             }
-                        }                        
+                        }                     
                     ]
                 }                
             }    
@@ -682,6 +682,7 @@
         { // Multiple deployments, PIPs, NICs, VMs
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2019-10-01",
+            //"name": "[concat(parameters('vmProperties')[copyIndex()].name,'Deployment')]",
             "name": "[concat('NestedDeployment',copyIndex())]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks',concat(parameters('projectName'),'vnet'))]",
