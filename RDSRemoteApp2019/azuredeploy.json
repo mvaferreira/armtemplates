@@ -510,7 +510,22 @@
                                     "cname": "[reference(concat(parameters('projectName'),'lbwebgwpip')).dnsSettings.fqdn]"
                                 }
                             }
-                        }
+                        },
+                        {
+                            "name": "[concat(parameters('DNSZone'),'/','broker')]",
+                            "type": "Microsoft.Network/dnszones/CNAME",
+                            "apiVersion": "2018-05-01",
+                            "location": "global",
+                            "dependsOn": [
+                                "[parameters('DNSZone')]"
+                            ],
+                            "properties": {
+                                "TTL": 1200,
+                                "CNAMERecord": {
+                                    "cname": "[reference(concat(parameters('projectName'),'lbwebgwpip')).dnsSettings.fqdn]"
+                                }
+                            }
+                        }                        
                     ]
                 }                
             }    
@@ -681,6 +696,9 @@
                     "scope": "inner"
                 },
                 "parameters": {
+                    "projectName": {
+                        "value": "[parameters('projectName')]"
+                    },
                     "loopCount": {
                         "value": "[parameters('vmProperties')[copyIndex()].count]"
                     },
@@ -737,7 +755,10 @@
                     },
                     "ExternalFqdn": {
                         "value": "[parameters('ExternalFqdn')]"
-                    },                                    
+                    },
+                    "ExternalDnsDomain": {
+                        "value": "[parameters('DNSZone')]"
+                    },
                     "dscFunction": {
                         "value": "[parameters('vmProperties')[copyIndex()].dscFunction]"
                     },
@@ -755,6 +776,9 @@
                     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
                     "contentVersion": "1.0.0.0",
                     "parameters": {
+                        "projectName": {
+                            "type": "string"
+                        },
                         "loopCount": {
                             "type": "int"
                         },
@@ -811,7 +835,10 @@
                         },
                         "ExternalFqdn": {
                             "type": "string"
-                        },                                                                                                                                                                     
+                        },
+                        "ExternalDnsDomain": {
+                            "type": "string"
+                        },                                                                                                                                             
                         "dscFunction": {
                             "type": "string"
                         },
@@ -1007,7 +1034,7 @@
                                             ]
                                         },
                                         "protectedSettings": {
-                                            "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('certScriptName'),' -ExternalFqdn ',parameters('ExternalFqdn'),' -CertPasswd ',parameters('adminPasswd'))]"
+                                            "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('certScriptName'),' -ProjectName ', parameters('projectName'),' -WebGatewayFqdn ',parameters('ExternalFqdn'),' -BrokerFqdn ',concat('broker.',parameters('ExternalDnsDomain')),' -WebGatewayServer ',parameters('WebAccessServer'),' -Passwd ',parameters('adminPasswd'))]"
                                         }
                                     }
                                 }
