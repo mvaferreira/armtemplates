@@ -17,7 +17,6 @@ Param(
 
 $CertPasswd = ConvertTo-SecureString -String $Passwd -Force -AsPlainText
 
-Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
 Install-Module -Name Posh-ACME -Scope AllUsers -Force
