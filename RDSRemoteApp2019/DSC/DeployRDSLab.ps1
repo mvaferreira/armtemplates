@@ -12,7 +12,7 @@
     $DNSServer = $RDSParameters[0].DNSServer
     $TimeZoneID = $RDSParameters[0].$TimeZoneID
     
-    Import-DscResource -ModuleName PSDesiredStateConfiguration,xActiveDirectory,xNetworking,ComputerManagementDSC,xComputerManagement
+    Import-DscResource -ModuleName PSDesiredStateConfiguration,xActiveDirectory,xNetworking,ComputerManagementDSC,xComputerManagement,xDnsServer
     [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
     $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
     $InterfaceAlias = $($Interface.Name)
@@ -36,7 +36,7 @@
             Ensure = "Present"
             Name = "AD-Domain-Services"
             DependsOn = "[WindowsFeature]DNS"
-        }
+        }      
 
         WindowsFeature DnsTools
         {
@@ -91,11 +91,19 @@
             SysvolPath = "$Env:windir\SYSVOL"
             DependsOn = @("[WindowsFeature]AD-Domain-Services", "[xDnsServerAddress]DnsServerAddress")
         }
+
+        xDnsServerForwarder SetForwarders
+        {
+            IsSingleInstance = 'Yes'
+            IPAddresses      = @('8.8.8.8', '8.8.4.4')
+            UseRootHint      = $false
+            DependsOn = @("[WindowsFeature]DNS", "[xADDomain]RootDomain")
+        }      
         
         PendingReboot RebootAfterInstallingAD
         {
             Name = 'RebootAfterInstallingAD'
-            DependsOn = "[xADDomain]RootDomain"
+            DependsOn = @("[xADDomain]RootDomain","[xDnsServerForwarder]SetForwarders")
         }        
     }
 }
