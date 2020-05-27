@@ -739,6 +739,12 @@
                     "intLbBackEndPool": {
                         "value": "[parameters('vmProperties')[copyIndex()].intLbBackEndPool]"
                     },
+                    "intLbBrokerIP": {
+                        "value": "[reference(concat(resourceId('Microsoft.Network/loadBalancers',parameters('intLbName')),'/frontendIPConfigurations/rds-brokers-frontend')).privateIPAddress]"
+                    },
+                    "intLbWebGWIP": {
+                        "value": "[reference(concat(resourceId('Microsoft.Network/loadBalancers',parameters('intLbName')),'/frontendIPConfigurations/rds-webgateways-frontend')).privateIPAddress]"
+                    },                    
                     "pubLbName": {
                         "value": "[concat(parameters('projectName'),'publb')]"
                     },
@@ -828,6 +834,12 @@
                         "intLbBackEndPool": {
                             "type": "string"
                         },
+                        "intLbBrokerIP": {
+                            "type": "string"
+                        },
+                        "intLbWebGWIP": {
+                            "type": "string"
+                        },
                         "pubLbName": {
                             "type": "string"
                         },
@@ -904,8 +916,7 @@
                                 "id": "[concat(resourceId('Microsoft.Network/loadBalancers',parameters('pubLbName')),'/backendAddressPools/',parameters('pubLbBackEndPool'))]"
                             }                            
                         ],
-                        "intlbBrokerFERef": "[concat(resourceId('Microsoft.Network/loadBalancers',parameters('intLbName')),'frontendIPConfigurations/rds-brokers-frontend')]",
-                        "intlbWebGWFERef": "[concat(resourceId('Microsoft.Network/loadBalancers',parameters('intLbName')),'frontendIPConfigurations/rds-webgateways-frontend')]"
+                        "intlbRef": "[resourceId(resourceGroup().name,'Microsoft.Network/loadBalancers',parameters('intLbName'))]"
                     },
                     "resources": [
                         { // Public IP Addresses
@@ -1042,8 +1053,8 @@
                                                         "ExternalDnsDomain": "[parameters('ExternalDnsDomain')]",
                                                         "SessionHost": "[parameters('SessionHost')]",
                                                         "LicenseServer": "[parameters('LicenseServer')]",
-                                                        "IntBrokerLBIP": "[reference(variables('intlbBrokerFERef')).privateIPAddress]",
-                                                        "IntWebGWLBIP": "[reference(variables('intlbWebGWFERef')).privateIPAddress]"
+                                                        "IntBrokerLBIP": "[parameters('intLbBrokerIP')]",
+                                                        "IntWebGWLBIP": "[parameters('intLbWebGWIP')]"
                                                     }
                                                 ]
                                             }
