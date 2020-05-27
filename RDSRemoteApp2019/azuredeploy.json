@@ -695,7 +695,6 @@
                 "[resourceId('Microsoft.Network/virtualNetworks',concat(parameters('projectName'),'vnet'))]",
                 "[concat(parameters('projectName'),'intlb')]",
                 "[concat(parameters('projectName'),'publb')]",
-                "[concat(parameters('projectName'),'intlb')]",
                 "[concat(parameters('projectName'),'sqlsrv')]"
             ],
             "properties": {
@@ -904,7 +903,9 @@
                             {
                                 "id": "[concat(resourceId('Microsoft.Network/loadBalancers',parameters('pubLbName')),'/backendAddressPools/',parameters('pubLbBackEndPool'))]"
                             }                            
-                        ]
+                        ],
+                        "intlbBrokerFERef": "[concat(resourceId('Microsoft.Network/loadBalancers',parameters('intLbName')),'frontendIPConfigurations/rds-brokers-frontend')]",
+                        "intlbWebGWFERef": "[concat(resourceId('Microsoft.Network/loadBalancers',parameters('intLbName')),'frontendIPConfigurations/rds-webgateways-frontend')]"
                     },
                     "resources": [
                         { // Public IP Addresses
@@ -1041,10 +1042,10 @@
                                                         "ExternalDnsDomain": "[parameters('ExternalDnsDomain')]",
                                                         "SessionHost": "[parameters('SessionHost')]",
                                                         "LicenseServer": "[parameters('LicenseServer')]",
-                                                        "IntBrokerLBIP": "[reference(concat(resourceId('Microsoft.Network/loadBalancers',concat(parameters('projectName'),'intlb')),'/frontendIpConfigurations/rds-brokers-frontend')).privateIPAddress]",
-                                                        "IntWebGWLBIP": "[reference(concat(resourceId('Microsoft.Network/loadBalancers',concat(parameters('projectName'),'intlb')),'/frontendIpConfigurations/rds-webgateways-frontend')).privateIPAddress]"
+                                                        "IntBrokerLBIP": "[reference(variables('intlbBrokerFERef')).privateIPAddress]",
+                                                        "IntWebGWLBIP": "[reference(variables('intlbWebGWFERef')).privateIPAddress]"
                                                     }
-                                                ]                           
+                                                ]
                                             }
                                         },
                                         "protectedSettings": {
@@ -1087,8 +1088,7 @@
                                     "condition": "[and(contains(parameters('vmName'),'cb'),parameters('requestCert'),parameters('createSqlServerAndDB'))]",
                                     "dependsOn": [
                                         "[resourceId('Microsoft.Compute/virtualMachines',concat(parameters('vmName'),copyIndex(1)))]",
-                                        "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('vmName'),copyIndex(1)),'dscext')]",
-                                        "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('vmName'),copyIndex(1)),'/certpwshext')]"
+                                        "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('vmName'),copyIndex(1)),'certpwshext')]"
                                     ],
                                     "properties": {
                                         "publisher": "Microsoft.Compute",
