@@ -10,7 +10,7 @@
 
     $DomainName = $RDSParameters[0].DomainName
     $DNSServer = $RDSParameters[0].DNSServer
-    $TimeZoneID = $RDSParameters[0].$TimeZoneID
+    $TimeZoneID = $RDSParameters[0].TimeZoneID
     
     Import-DscResource -ModuleName PSDesiredStateConfiguration,xActiveDirectory,xNetworking,ComputerManagementDSC,xComputerManagement,xDnsServer
     [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
@@ -351,7 +351,7 @@ Configuration RDSDeployment
 
     $DomainName = $RDSParameters[0].DomainName
     $DNSServer = $RDSParameters[0].DNSServer
-    $TimeZoneID = $RDSParamters[0].TimeZoneID
+    $TimeZoneID = $RDSParameters[0].TimeZoneID
 
     # Connection Broker Node name
     $ConnectionBroker = $($RDSParameters[0].ConnectionBroker + "." + $DomainName)
