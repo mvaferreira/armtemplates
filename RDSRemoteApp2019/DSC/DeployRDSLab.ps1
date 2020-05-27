@@ -155,7 +155,9 @@ Configuration RDWebGateway
         {
             Extension = "."
             MimeType = "text/plain"
+            ConfigurationPath = "IIS:\sites\Default Web Site"
             Ensure = "Present"
+            DependsOn = "[WindowsFeature]RDS-Web-Access"
         }
 
         xDnsServerAddress DnsServerAddress
