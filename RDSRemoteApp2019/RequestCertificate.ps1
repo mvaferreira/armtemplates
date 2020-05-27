@@ -40,9 +40,6 @@ Function RequestCert([string]$Fqdn) {
         $AcmePath = "C:\Inetpub\wwwroot\.well-known\acme-challenge"
         New-Item -ItemType Directory -Path $AcmePath -Force
         New-Item -Path $AcmePath -Name $auth.HTTP01Token -ItemType File -Value $AcmeBody
-        If (-Not (Get-WebConfiguration //staticcontent -PSPath "IIS:\sites\Default Web Site").collection | Where-Object { $_.FileExtension -eq "." }) {
-            Add-WebConfigurationProperty -PSPath 'MACHINE/WEBROOT/APPHOST' -Filter "system.webServer/staticContent" -Name "." -Value @{ fileExtension = '.'; mimeType = 'text/plain' }
-        }
     } -ArgumentList $auth, $AcmeBody
 
     Start-Sleep -Seconds 5

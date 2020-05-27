@@ -5,6 +5,9 @@
         "projectName": {
             "value": "rds"
         },
+        "TimeZoneID": {
+            "value": "UTC"
+        },
         "DNSZone": {
             "value": "contoso.com"
         },
@@ -12,7 +15,7 @@
             "value": "rgdns"
         },
         "adminPasswd": {
-            "value": "P@ssw0rd" //Enter your password here.
+            "value": "P@ssword" //Enter your password here.
         }
     }
 }

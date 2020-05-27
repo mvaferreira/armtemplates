@@ -28,7 +28,14 @@
         "ExternalFqdn": {
             "type": "string",
             "defaultValue": "[concat(parameters('DNSEntry'),'.',parameters('DNSZone'))]"
-        },             
+        },
+        "TimeZoneID": {
+            "type": "string",
+            "defaultValue": "UTC",
+            "metadata": {
+                "description": "TimeZone ID to be used on VMs. Get available timezones with powershell Get-TimeZone command."
+            }
+        },
        "vmNames": {
             "type": "array",
             "defaultValue": [
@@ -700,6 +707,9 @@
                     "projectName": {
                         "value": "[parameters('projectName')]"
                     },
+                    "TimeZoneID": {
+                        "value": "[parameters('TimeZoneID')]"
+                    },
                     "loopCount": {
                         "value": "[parameters('vmProperties')[copyIndex()].count]"
                     },
@@ -778,6 +788,9 @@
                     "contentVersion": "1.0.0.0",
                     "parameters": {
                         "projectName": {
+                            "type": "string"
+                        },
+                        "TimeZoneID": {
                             "type": "string"
                         },
                         "loopCount": {
@@ -996,6 +1009,7 @@
                                                 },
                                                 "RDSParameters": [
                                                     {
+                                                        "TimeZoneID": "[parameters('TimeZoneID')]",
                                                         "DomainName": "[parameters('adDomainName')]",
                                                         "DNSServer": "[parameters('firstDcIP')]",
                                                         "ConnectionBroker": "[parameters('ConnectionBroker')]",
@@ -1004,7 +1018,7 @@
                                                         "SessionHost": "[parameters('SessionHost')]",
                                                         "LicenseServer": "[parameters('LicenseServer')]"
                                                     }
-                                                ]                                               
+                                                ]                           
                                             }
                                         },
                                         "protectedSettings": {

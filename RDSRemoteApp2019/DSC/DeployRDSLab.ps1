@@ -10,6 +10,7 @@
 
     $DomainName = $RDSParameters[0].DomainName
     $DNSServer = $RDSParameters[0].DNSServer
+    $TimeZoneID = $RDSParameters[0].$TimeZoneID
     
     Import-DscResource -ModuleName PSDesiredStateConfiguration,xActiveDirectory,xNetworking,ComputerManagementDSC,xComputerManagement
     [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
@@ -66,6 +67,12 @@
             IncludeAllSubFeature = $True
         }
 
+        TimeZone SetTimeZone
+        {
+            IsSingleInstance = 'Yes'
+            TimeZone = $TimeZoneID
+        }
+
         xDnsServerAddress DnsServerAddress
         {
             Address        = $DNSServer
@@ -105,8 +112,9 @@ Configuration RDWebGateway
 
     $DomainName = $RDSParameters[0].DomainName
     $DNSServer = $RDSParameters[0].DNSServer
+    $TimeZoneID = $RDSParameters[0].TimeZoneID
     
-    Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement
+    Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement,xWebAdministration
     [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
     $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
     $InterfaceAlias = $($Interface.Name)
@@ -135,6 +143,19 @@ Configuration RDWebGateway
         {
             Ensure = "Present"
             Name = "RSAT-AD-PowerShell"
+        }
+
+        TimeZone SetTimeZone
+        {
+            IsSingleInstance = 'Yes'
+            TimeZone = $TimeZoneID
+        }
+        
+        xIISMimeTypeMapping ConfigureMIME
+        {
+            Extension = "."
+            MimeType = "text/plain"
+            Ensure = "Present"
         }
 
         xDnsServerAddress DnsServerAddress
@@ -176,6 +197,7 @@ Configuration RDSessionHost
 
     $DomainName = $RDSParameters[0].DomainName
     $DNSServer = $RDSParameters[0].DNSServer
+    $TimeZoneID = $RDSParameters[0].TimeZoneID
     
     Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement
     [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
@@ -201,6 +223,12 @@ Configuration RDSessionHost
             Ensure = "Present"
             Name = "RSAT-AD-PowerShell"
         }
+
+        TimeZone SetTimeZone
+        {
+            IsSingleInstance = 'Yes'
+            TimeZone = $TimeZoneID
+        }        
 
         xDnsServerAddress DnsServerAddress
         {
@@ -241,6 +269,7 @@ Configuration RDLicenseServer
 
     $DomainName = $RDSParameters[0].DomainName
     $DNSServer = $RDSParameters[0].DNSServer
+    $TimeZoneID = $RDSParameters[0].TimeZoneID
     
     Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement
     [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
@@ -266,6 +295,12 @@ Configuration RDLicenseServer
             Ensure = "Present"
             Name = "RSAT-AD-PowerShell"
         }
+
+        TimeZone SetTimeZone
+        {
+            IsSingleInstance = 'Yes'
+            TimeZone = $TimeZoneID
+        }        
 
         xDnsServerAddress DnsServerAddress
         {
@@ -306,6 +341,7 @@ Configuration RDSDeployment
 
     $DomainName = $RDSParameters[0].DomainName
     $DNSServer = $RDSParameters[0].DNSServer
+    $TimeZoneID = $RDSParamters[0].TimeZoneID
 
     # Connection Broker Node name
     $ConnectionBroker = $($RDSParameters[0].ConnectionBroker + "." + $DomainName)
@@ -351,6 +387,12 @@ Configuration RDSDeployment
             Ensure = "Present"
             Name = "RSAT-AD-PowerShell"
         }
+
+        TimeZone SetTimeZone
+        {
+            IsSingleInstance = 'Yes'
+            TimeZone = $TimeZoneID
+        }        
 
         xDnsServerAddress DnsServerAddress
         {
