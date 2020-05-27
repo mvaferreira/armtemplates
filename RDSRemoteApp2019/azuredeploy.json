@@ -740,10 +740,10 @@
                         "value": "[parameters('vmProperties')[copyIndex()].intLbBackEndPool]"
                     },
                     "intLbBrokerIP": {
-                        "value": "[reference(concat(resourceId('Microsoft.Network/loadBalancers',parameters('intLbName')),'/frontendIPConfigurations/rds-brokers-frontend')).privateIPAddress]"
+                        "value": "[reference(concat(resourceId('Microsoft.Network/loadBalancers',concat(parameters('projectName'),'intlb')),'/frontendIPConfigurations/rds-brokers-frontend')).privateIPAddress]"
                     },
                     "intLbWebGWIP": {
-                        "value": "[reference(concat(resourceId('Microsoft.Network/loadBalancers',parameters('intLbName')),'/frontendIPConfigurations/rds-webgateways-frontend')).privateIPAddress]"
+                        "value": "[reference(concat(resourceId('Microsoft.Network/loadBalancers',concat(parameters('projectName'),'intlb')),'/frontendIPConfigurations/rds-webgateways-frontend')).privateIPAddress]"
                     },                    
                     "pubLbName": {
                         "value": "[concat(parameters('projectName'),'publb')]"
