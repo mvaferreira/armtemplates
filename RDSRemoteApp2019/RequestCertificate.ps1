@@ -19,7 +19,7 @@ $ServerObj = Get-WmiObject -Namespace "root\cimv2" -Class "Win32_ComputerSystem"
 
 $DomainName = $ServerObj.Domain
 $CertPasswd = ConvertTo-SecureString -String $Passwd -Force -AsPlainText
-[System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($ProjectName)",$CertPasswd)
+[System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($ProjectName)", $CertPasswd)
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
@@ -42,8 +42,13 @@ Function RequestCert([string]$Fqdn) {
         New-Item -Path $AcmePath -Name $auth.HTTP01Token -ItemType File -Value $AcmeBody
     } -ArgumentList $auth, $AcmeBody
 
-    Start-Sleep -Seconds 5
     $auth.HTTP01Url | Send-ChallengeAck
+
+    Do {
+        Write-Host "Waiting for validation. Sleeping 30 seconds..."
+        Start-Sleep -Seconds 30
+    } While ((Get-PAOrder | Get-PAAuthorizations).HTTP01Status -ne "valid")
+
     New-PACertificate $Fqdn -Install
     $Thumbprint = (Get-PACertificate $Fqdn).Thumbprint
     
