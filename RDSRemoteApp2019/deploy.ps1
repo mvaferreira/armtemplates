@@ -5,7 +5,7 @@
 #Set-AzContext -Subscription $Subscription
 
 $RG = "rds2019"
-$Location = "Central US"
+$Location = "East US"
 
 If (-Not (Get-AzResourceGroup -Name $RG -ErrorAction SilentlyContinue)) {
     New-AzResourceGroup -Name $RG -Location $Location

@@ -61,11 +61,14 @@ Function RequestCert([string]$Fqdn) {
 $ServerName = $ServerObj.DNSHostName + "." + $DomainName
 $CertWebGatewayPath = (Join-path "C:\temp" $($WebGatewayFqdn + ".pfx"))
 $CertBrokerPath = (Join-path "C:\temp" $($BrokerFqdn + ".pfx"))
-RequestCert $WebGatewayFqdn
-RequestCert $BrokerFqdn
-Set-RDCertificate -Role RDWebAccess -ImportPath $CertWebGatewayPath -Password $CertPasswd -ConnectionBroker $ServerName -Force
-Set-RDCertificate -Role RDGateway -ImportPath $CertWebGatewayPath -Password $CertPasswd -ConnectionBroker $ServerName -Force
-Set-RDCertificate -Role RDRedirector -ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $ServerName -Force
-Set-RDCertificate -Role RDPublishing -ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $ServerName -Force
+
+If (-Not (Get-RDCertificate -Role RDGateway).IssuedTo) {
+    RequestCert $WebGatewayFqdn
+    RequestCert $BrokerFqdn
+    Set-RDCertificate -Role RDWebAccess -ImportPath $CertWebGatewayPath -Password $CertPasswd -ConnectionBroker $ServerName -Force
+    Set-RDCertificate -Role RDGateway -ImportPath $CertWebGatewayPath -Password $CertPasswd -ConnectionBroker $ServerName -Force
+    Set-RDCertificate -Role RDRedirector -ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $ServerName -Force
+    Set-RDCertificate -Role RDPublishing -ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $ServerName -Force
+}
 
 Stop-Transcript

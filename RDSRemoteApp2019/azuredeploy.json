@@ -62,7 +62,7 @@
         },        
         "rdcbCount": {
             "type": "int",
-            "defaultValue": 1,
+            "defaultValue": 2,
             "metadata": {
                 "description": "How many RD Connection Brokers would you like to deploy?"
             }
@@ -196,7 +196,8 @@
         "firstDcIP": "[concat(parameters('vNetPrefix'),'.0.100')]",
         "nsgRef": "[resourceId('Microsoft.Network/networkSecurityGroups',concat(parameters('projectName'),'nsg'))]",
         "subNetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets',variables('vNetName'),concat(parameters('projectName'),'main'))]",
-        "certScriptName": "RequestCertificate.ps1"
+        "certScriptName": "RequestCertificate.ps1",
+        "brokerHAScriptName": "ConfigureBrokerHA.ps1"
     },
     "resources": [
         { // Storage Account
@@ -668,13 +669,13 @@
             ]
         }, // Azure SQL Server
         { // Azure SQL Database
-            "name": "[concat(parameters('projectName'),'sqlsrv/','sqldb')]",
+            "name": "[concat(parameters('projectName'),'sqlsrv/','rdsdb')]",
             "type": "Microsoft.Sql/servers/databases",
             "apiVersion": "2014-04-01",
             "location": "[resourceGroup().location]",
             "condition": "[parameters('createSqlServerAndDB')]",
             "tags": {
-                "displayName": "[concat(parameters('projectName'),'sqlsrv/','sqldb')]"
+                "displayName": "[concat(parameters('projectName'),'sqlsrv/','rdsdb')]"
             },
             "dependsOn": [
                 "[resourceId('Microsoft.Sql/servers', concat(parameters('projectName'),'sqlsrv'))]"
@@ -689,8 +690,7 @@
         { // Multiple deployments, PIPs, NICs, VMs
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2019-10-01",
-            //"name": "[concat(parameters('vmProperties')[copyIndex()].name,'Deployment')]",
-            "name": "[concat('NestedDeployment',copyIndex())]",
+            "name": "[concat(parameters('vmProperties')[copyIndex()].name,'Deployment')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks',concat(parameters('projectName'),'vnet'))]",
                 "[concat(parameters('projectName'),'intlb')]",
@@ -781,6 +781,12 @@
                     },
                     "requestCert": {
                         "value": "[parameters('CreateDNSEntry')]"
+                    },
+                    "createSqlServerAndDB": {
+                        "value": "[parameters('createSqlServerAndDB')]"
+                    },
+                    "brokerHAScriptName": {
+                        "value": "[variables('brokerHAScriptName')]"
                     }
                 },
                 "template": {
@@ -864,10 +870,27 @@
                         },
                         "requestCert": {
                             "type": "bool"
+                        },
+                        "createSqlServerAndDB": {
+                            "type": "bool"
+                        },
+                        "brokerHAScriptName": {
+                            "type": "string"
                         }
                     },
                     "variables": {
-                        "scriptDownload": "[uri(parameters('dscLocation'),parameters('certScriptName'))]",
+                        "certScriptPath": "[uri(parameters('dscLocation'),parameters('certScriptName'))]",
+                        "brokerScriptPath": "[uri(parameters('dscLocation'),parameters('brokerHAScriptName'))]",
+                        "BrokerParameters": [
+                            {
+                                "ConnectionBroker": "[concat(parameters('ConnectionBroker'),'.',parameters('adDomainName'))]",
+                                "AzureSQLFQDN": "[concat(parameters('projectName'),'sqlsrv','.database.windows.net')]",
+                                "AzureSQLDBName": "rdsdb",
+                                "AzureSQLUserID": "[parameters('projectName')]",
+                                "AzureSQLPasswd": "[parameters('adminPasswd')]",
+                                "BrokerFQDN": "[concat('broker.',parameters('ExternalDnsDomain'))]"
+                            }
+                        ],
                         "empty": [],
                         "intlbPool": [
                             {
@@ -1015,8 +1038,11 @@
                                                         "ConnectionBroker": "[parameters('ConnectionBroker')]",
                                                         "WebAccessServer": "[parameters('WebAccessServer')]",
                                                         "ExternalFqdn": "[parameters('ExternalFqdn')]",
+                                                        "ExternalDnsDomain": "[parameters('ExternalDnsDomain')]",
                                                         "SessionHost": "[parameters('SessionHost')]",
-                                                        "LicenseServer": "[parameters('LicenseServer')]"
+                                                        "LicenseServer": "[parameters('LicenseServer')]",
+                                                        "IntBrokerLBIP": "[reference(concat(resourceId('Microsoft.Network/loadBalancers',concat(parameters('projectName'),'intlb')),'/frontendIpConfigurations/rds-brokers-frontend')).privateIPAddress]",
+                                                        "IntWebGWLBIP": "[reference(concat(resourceId('Microsoft.Network/loadBalancers',concat(parameters('projectName'),'intlb')),'/frontendIpConfigurations/rds-webgateways-frontend')).privateIPAddress]"
                                                     }
                                                 ]                           
                                             }
@@ -1031,7 +1057,7 @@
                                 {
                                     "type": "Microsoft.Compute/virtualMachines/extensions",
                                     "apiVersion": "2019-12-01",
-                                    "name": "[concat(parameters('vmName'),copyIndex(1),'/pwshext')]",
+                                    "name": "[concat(parameters('vmName'),copyIndex(1),'/certpwshext')]",
                                     "location": "[resourceGroup().location]",
                                     "condition": "[and(contains(parameters('vmName'),'cb'),equals(copyIndex(1),1),parameters('requestCert'))]",
                                     "dependsOn": [
@@ -1045,14 +1071,40 @@
                                         "autoUpgradeMinorVersion": true,
                                         "settings": {
                                             "fileUris": [
-                                                "[variables('scriptDownload')]"
+                                                "[variables('certScriptPath')]"
                                             ]
                                         },
                                         "protectedSettings": {
                                             "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('certScriptName'),' -ProjectName ', parameters('projectName'),' -WebGatewayFqdn ',parameters('ExternalFqdn'),' -BrokerFqdn ',concat('broker.',parameters('ExternalDnsDomain')),' -WebGatewayServer ',parameters('WebAccessServer'),' -Passwd ',parameters('adminPasswd'))]"
                                         }
                                     }
-                                }
+                                },
+                                {
+                                    "type": "Microsoft.Compute/virtualMachines/extensions",
+                                    "apiVersion": "2019-12-01",
+                                    "name": "[concat(parameters('vmName'),copyIndex(1),'/brkrhapwshext')]",
+                                    "location": "[resourceGroup().location]",
+                                    "condition": "[and(contains(parameters('vmName'),'cb'),parameters('requestCert'),parameters('createSqlServerAndDB'))]",
+                                    "dependsOn": [
+                                        "[resourceId('Microsoft.Compute/virtualMachines',concat(parameters('vmName'),copyIndex(1)))]",
+                                        "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('vmName'),copyIndex(1)),'dscext')]",
+                                        "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('vmName'),copyIndex(1)),'/certpwshext')]"
+                                    ],
+                                    "properties": {
+                                        "publisher": "Microsoft.Compute",
+                                        "type": "CustomScriptExtension",
+                                        "typeHandlerVersion": "1.10",
+                                        "autoUpgradeMinorVersion": true,
+                                        "settings": {
+                                            "fileUris": [
+                                                "[variables('brokerScriptPath')]"
+                                            ]
+                                        },
+                                        "protectedSettings": {
+                                            "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('brokerHAScriptName'),' -BrokerParameters ',variables('BrokerParameters'))]"
+                                        }
+                                    }
+                                }                                
                             ],
                             "name": "[concat(parameters('vmName'),copyIndex(1))]",
                             "copy": {

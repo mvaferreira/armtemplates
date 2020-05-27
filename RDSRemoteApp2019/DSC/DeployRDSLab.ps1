@@ -11,8 +11,11 @@
     $DomainName = $RDSParameters[0].DomainName
     $DNSServer = $RDSParameters[0].DNSServer
     $TimeZoneID = $RDSParameters[0].TimeZoneID
+    $ExternalDnsDomain = $RDSParameters[0].ExternalDnsDomain
+    $IntBrokerLBIP = $RDSParameters[0].IntBrokerLBIP
+    $IntWebGWLBIP = $RDSParameters[0].IntWebGWLBIP
     
-    Import-DscResource -ModuleName PSDesiredStateConfiguration,xActiveDirectory,xNetworking,ComputerManagementDSC,xComputerManagement,xDnsServer
+    Import-DscResource -ModuleName PSDesiredStateConfiguration,xActiveDirectory,xNetworking,ComputerManagementDSC,xComputerManagement,xDnsServer,NetworkingDsc
     [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
     $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
     $InterfaceAlias = $($Interface.Name)
@@ -73,6 +76,13 @@
             TimeZone = $TimeZoneID
         }
 
+        Firewall EnableSMBFwRule
+        {
+            Name = "FPS-SMB-In-TCP"
+            Enabled = $True
+            Ensure = "Present"
+        }
+
         xDnsServerAddress DnsServerAddress
         {
             Address        = $DNSServer
@@ -98,7 +108,37 @@
             IPAddresses      = @('8.8.8.8', '8.8.4.4')
             UseRootHint      = $false
             DependsOn = @("[WindowsFeature]DNS", "[xADDomain]RootDomain")
-        }      
+        }
+
+        xDnsServerADZone AddExternalZone
+        {
+            Name = $ExternalDnsDomain
+            DynamicUpdate = "Secure"
+            ReplicationScope = "Forest"
+            ComputerName = "$($env:COMPUTERNAME).$($DomainName)"
+            Ensure = "Present"
+            DependsOn = "[xDnsServerForwarder]SetForwarders"
+        }
+
+        xDnsRecord AddIntLBBrokerIP
+        {
+            Name = "broker"
+            Target = $IntBrokerLBIP
+            Zone = $ExternalDnsDomain
+            Type = "ARecord"
+            Ensure = "Present"
+            DependsOn = "[xDnsServerADZone]AddExternalZone"
+        }
+
+        xDnsRecord AddIntLBWebGWIP
+        {
+            Name = "broker"
+            Target = $IntWebGWLBIP
+            Zone = $ExternalDnsDomain
+            Type = "ARecord"
+            Ensure = "Present"
+            DependsOn = "[xDnsServerADZone]AddExternalZone"
+        }
         
         PendingReboot RebootAfterInstallingAD
         {
@@ -122,7 +162,7 @@ Configuration RDWebGateway
     $DNSServer = $RDSParameters[0].DNSServer
     $TimeZoneID = $RDSParameters[0].TimeZoneID
     
-    Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement,xWebAdministration
+    Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement,xWebAdministration,NetworkingDsc
     [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
     $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
     $InterfaceAlias = $($Interface.Name)
@@ -158,6 +198,13 @@ Configuration RDWebGateway
             IsSingleInstance = 'Yes'
             TimeZone = $TimeZoneID
         }
+
+        Firewall EnableSMBFwRule
+        {
+            Name = "FPS-SMB-In-TCP"
+            Enabled = $True
+            Ensure = "Present"
+        }        
         
         xIISMimeTypeMapping ConfigureMIME
         {
@@ -209,7 +256,7 @@ Configuration RDSessionHost
     $DNSServer = $RDSParameters[0].DNSServer
     $TimeZoneID = $RDSParameters[0].TimeZoneID
     
-    Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement
+    Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement,NetworkingDsc
     [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
     $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
     $InterfaceAlias = $($Interface.Name)
@@ -238,6 +285,13 @@ Configuration RDSessionHost
         {
             IsSingleInstance = 'Yes'
             TimeZone = $TimeZoneID
+        }
+        
+        Firewall EnableSMBFwRule
+        {
+            Name = "FPS-SMB-In-TCP"
+            Enabled = $True
+            Ensure = "Present"
         }        
 
         xDnsServerAddress DnsServerAddress
@@ -281,7 +335,7 @@ Configuration RDLicenseServer
     $DNSServer = $RDSParameters[0].DNSServer
     $TimeZoneID = $RDSParameters[0].TimeZoneID
     
-    Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement
+    Import-DscResource -ModuleName PSDesiredStateConfiguration,xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement,NetworkingDsc
     [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
     $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
     $InterfaceAlias = $($Interface.Name)
@@ -310,6 +364,13 @@ Configuration RDLicenseServer
         {
             IsSingleInstance = 'Yes'
             TimeZone = $TimeZoneID
+        }
+
+        Firewall EnableSMBFwRule
+        {
+            Name = "FPS-SMB-In-TCP"
+            Enabled = $True
+            Ensure = "Present"
         }        
 
         xDnsServerAddress DnsServerAddress
@@ -369,7 +430,7 @@ Configuration RDSDeployment
     $ExternalFqdn = $RDSParameters[0].ExternalFqdn
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration -ModuleVersion 1.1
-    Import-DscResource -ModuleName xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement,xRemoteDesktopSessionHost
+    Import-DscResource -ModuleName xNetworking,ActiveDirectoryDsc,ComputerManagementDSC,xComputerManagement,xRemoteDesktopSessionHost,NetworkingDsc
     [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
     $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
     $InterfaceAlias = $($Interface.Name)
@@ -403,6 +464,13 @@ Configuration RDSDeployment
             IsSingleInstance = 'Yes'
             TimeZone = $TimeZoneID
         }        
+
+        Firewall EnableSMBFwRule
+        {
+            Name = "FPS-SMB-In-TCP"
+            Enabled = $True
+            Ensure = "Present"
+        }
 
         xDnsServerAddress DnsServerAddress
         {
