@@ -15,6 +15,9 @@ Param(
     [string]$Passwd
 )
 
+New-Item -ItemType Directory -Path "C:\temp" -Force
+Start-Transcript -Path "C:\temp\RequestCertificate.log"
+
 $ServerObj = Get-WmiObject -Namespace "root\cimv2" -Class "Win32_ComputerSystem"
 
 $DomainName = $ServerObj.Domain
@@ -26,7 +29,6 @@ Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
 Install-Module -Name Posh-ACME -Scope AllUsers -Force
 Import-Module Posh-ACME
 Import-Module RemoteDesktop
-New-Item -ItemType Directory -Path "C:\temp" -Force
 
 Function RequestCert([string]$Fqdn) {
     Set-PAServer LE_PROD
@@ -61,7 +63,9 @@ $CertWebGatewayPath = (Join-path "C:\temp" $($WebGatewayFqdn + ".pfx"))
 $CertBrokerPath = (Join-path "C:\temp" $($BrokerFqdn + ".pfx"))
 RequestCert $WebGatewayFqdn
 RequestCert $BrokerFqdn
-Set-RDCertificate -Role RDWebAccess -ImportPath $CertWebGatewayPath -Password $CertPasswd -ConnectionBroker $ServerName
-Set-RDCertificate -Role RDGateway -ImportPath $CertWebGatewayPath -Password $CertPasswd -ConnectionBroker $ServerName
-Set-RDCertificate -Role RDRedirector -ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $ServerName
-Set-RDCertificate -Role RDPublishing -ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $ServerName
+Set-RDCertificate -Role RDWebAccess -ImportPath $CertWebGatewayPath -Password $CertPasswd -ConnectionBroker $ServerName -Force
+Set-RDCertificate -Role RDGateway -ImportPath $CertWebGatewayPath -Password $CertPasswd -ConnectionBroker $ServerName -Force
+Set-RDCertificate -Role RDRedirector -ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $ServerName -Force
+Set-RDCertificate -Role RDPublishing -ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $ServerName -Force
+
+Stop-Transcript
