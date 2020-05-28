@@ -1112,8 +1112,7 @@
                                     "location": "[resourceGroup().location]",
                                     "condition": "[and(contains(parameters('vmName'),'cb'),parameters('requestCert'),parameters('createSqlServerAndDB'))]",
                                     "dependsOn": [
-                                        "[resourceId('Microsoft.Compute/virtualMachines',concat(parameters('vmName'),copyIndex(1)))]",
-                                        "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('vmName'),copyIndex(1)),'certpwshext')]"
+                                        "[resourceId('Microsoft.Compute/virtualMachines',concat(parameters('vmName'),copyIndex(1)))]"
                                     ],
                                     "properties": {
                                         "publisher": "Microsoft.Compute",

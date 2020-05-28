@@ -113,13 +113,13 @@
         Script AddExternalZone
         {
             SetScript = {
-                Add-DnsServerPrimaryZone -Name $ExternalDnsDomain `
+                Add-DnsServerPrimaryZone -Name $Using:ExternalDnsDomain `
                     -ReplicationScope "Forest" `
                     -DynamicUpdate "Secure"
             }
 
             TestScript = {
-                If (Get-DnsServerZone -Name $ExternalDnsDomain) {
+                If (Get-DnsServerZone -Name $Using:ExternalDnsDomain) {
                     Return $True
                 } Else {
                     Return $False
@@ -128,7 +128,7 @@
 
             GetScript = {
                 @{
-                    Result = Get-DnsServerZone -Name $ExternalDnsDomain
+                    Result = Get-DnsServerZone -Name $Using:ExternalDnsDomain
                 }
             }
 
@@ -548,62 +548,64 @@ Configuration RDSDeployment
             ValueData = "1"
         }
 
-        xRDSessionDeployment Deployment
-        {
-            ConnectionBroker = $ConnectionBroker
-            WebAccessServer = $WebAccessServer
-            SessionHost = $SessionHost
-            PsDscRunAsCredential = $DomainCreds
-            DependsOn = "[xComputer]DomainJoin"
-        }
+        If ($($Env:COMPUTERNAME) -eq $($RDSParameters[0].ConnectionBroker)) {
+            xRDSessionDeployment Deployment
+            {
+                ConnectionBroker = $ConnectionBroker
+                WebAccessServer = $WebAccessServer
+                SessionHost = $SessionHost
+                PsDscRunAsCredential = $DomainCreds
+                DependsOn = "[xComputer]DomainJoin"
+            }
 
-        xRDServer AddLicenseServer
-        {
-            Role = 'RDS-Licensing'
-            Server = $LicenseServer
-            PsDscRunAsCredential = $DomainCreds
-            DependsOn = "[xRDSessionDeployment]Deployment"
-        }
+            xRDServer AddLicenseServer
+            {
+                Role = 'RDS-Licensing'
+                Server = $LicenseServer
+                PsDscRunAsCredential = $DomainCreds
+                DependsOn = "[xRDSessionDeployment]Deployment"
+            }
 
-        xRDLicenseConfiguration LicenseConfiguration
-        {
-            ConnectionBroker = $ConnectionBroker
-            LicenseServer = @( $LicenseServer )
-            LicenseMode = 'PerUser'
-            PsDscRunAsCredential = $DomainCreds
-            DependsOn = "[xRDServer]AddLicenseServer"
-        }
+            xRDLicenseConfiguration LicenseConfiguration
+            {
+                ConnectionBroker = $ConnectionBroker
+                LicenseServer = @( $LicenseServer )
+                LicenseMode = 'PerUser'
+                PsDscRunAsCredential = $DomainCreds
+                DependsOn = "[xRDServer]AddLicenseServer"
+            }
 
-        xRDServer AddGatewayServer
-        {
-            Role = 'RDS-Gateway'
-            Server = $WebAccessServer
-            GatewayExternalFqdn = $ExternalFqdn
-            PsDscRunAsCredential = $DomainCreds
-            DependsOn = "[xRDLicenseConfiguration]LicenseConfiguration"
-        }
+            xRDServer AddGatewayServer
+            {
+                Role = 'RDS-Gateway'
+                Server = $WebAccessServer
+                GatewayExternalFqdn = $ExternalFqdn
+                PsDscRunAsCredential = $DomainCreds
+                DependsOn = "[xRDLicenseConfiguration]LicenseConfiguration"
+            }
 
-        xRDGatewayConfiguration GatewayConfiguration
-        {
-            ConnectionBroker = $ConnectionBroker
-            GatewayServer = $WebAccessServer
-            ExternalFqdn = $ExternalFqdn
-            GatewayMode = 'Custom'
-            LogonMethod = 'Password'
-            UseCachedCredentials = $true
-            BypassLocal = $false
-            PsDscRunAsCredential = $DomainCreds
-            DependsOn = "[xRDServer]AddGatewayServer"
-        }
-        
-        xRDSessionCollection Collection
-        {
-            ConnectionBroker = $ConnectionBroker
-            CollectionName = $CollectionName
-            CollectionDescription = $CollectionDescription
-            SessionHost = $SessionHost
-            PsDscRunAsCredential = $DomainCreds
-            DependsOn = "[xRDGatewayConfiguration]GatewayConfiguration"
+            xRDGatewayConfiguration GatewayConfiguration
+            {
+                ConnectionBroker = $ConnectionBroker
+                GatewayServer = $WebAccessServer
+                ExternalFqdn = $ExternalFqdn
+                GatewayMode = 'Custom'
+                LogonMethod = 'Password'
+                UseCachedCredentials = $true
+                BypassLocal = $false
+                PsDscRunAsCredential = $DomainCreds
+                DependsOn = "[xRDServer]AddGatewayServer"
+            }
+            
+            xRDSessionCollection Collection
+            {
+                ConnectionBroker = $ConnectionBroker
+                CollectionName = $CollectionName
+                CollectionDescription = $CollectionDescription
+                SessionHost = $SessionHost
+                PsDscRunAsCredential = $DomainCreds
+                DependsOn = "[xRDGatewayConfiguration]GatewayConfiguration"
+            }
         }
     }
 }
