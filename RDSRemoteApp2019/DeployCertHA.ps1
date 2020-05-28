@@ -3,13 +3,19 @@ Param (
     [string]$ProjectName,
 
     [Parameter(Mandatory)]
-    [string]$MainBrokerServer,
+    [string]$MainConnectionBroker,
 
     [Parameter(Mandatory)]
     [string]$BrokerFqdn,
 
     [Parameter(Mandatory)]
-    [string]$WebGatewayServer,
+    [array]$WebGatewayServers,
+
+    [Parameter(Mandatory)]
+    [array]$SessionHosts,
+
+    [Parameter(Mandatory)]
+    [array]$LicenseServers,
 
     [Parameter(Mandatory)]
     [string]$WebGatewayFqdn,
@@ -52,7 +58,7 @@ Function RequestCert([string]$Fqdn) {
     $auth = Get-PAOrder | Get-PAAuthorizations | Where-Object { $_.HTTP01Status -eq "Pending" }
     $AcmeBody = Get-KeyAuthorization $auth.HTTP01Token (Get-PAAccount)
 
-    Invoke-Command -ComputerName $WebGatewayServer -Credential $DomainCreds -ScriptBlock {
+    Invoke-Command -ComputerName $WebGatewayServers[0] -Credential $DomainCreds -ScriptBlock {
         Param($auth, $AcmeBody, $BrokerName, $DomainName)
         $AcmePath = "C:\Inetpub\wwwroot\.well-known\acme-challenge"
         New-Item -ItemType Directory -Path $AcmePath -Force
@@ -143,7 +149,33 @@ Function InstallSQLClient() {
     }
 }
 
-If ($ServerName -eq $MainBrokerServer) {
+If ($ServerName -eq $MainConnectionBroker) {
+    #Add remaining servers
+    ForEach($NewServer In $WebGatewayServers) {
+        If (-Not (Get-RDServer -Role "RDS-WEB-ACCESS" -ConnectionBroker $ServerFQDN | Where-Object {$_.Server -match $NewServer})) {
+            Add-RDServer -Role "RDS-WEB-ACCESS" -ConnectionBroker $ServerFQDN -Server $NewServer
+        }
+    }
+
+    ForEach($NewServer In $WebGatewayServers) {
+        If (-Not (Get-RDServer -Role "RDS-GATEWAY" -ConnectionBroker $ServerFQDN | Where-Object {$_.Server -match $NewServer})) {
+            Add-RDServer -Role "RDS-GATEWAY" -ConnectionBroker $ServerFQDN -Server $NewServer
+        }
+    }
+
+    ForEach($NewServer In $SessionHosts) {
+        If (-Not (Get-RDServer -Role "RDS-RD-SERVER" -ConnectionBroker $ServerFQDN | Where-Object {$_.Server -match $NewServer})) {
+            Add-RDServer -Role "RDS-RD-SERVER" -ConnectionBroker $ServerFQDN -Server $NewServer
+        }
+    }
+    
+    ForEach($NewServer In $LicenseServers) {
+        If (-Not (Get-RDServer -Role "RDS-LICENSING" -ConnectionBroker $ServerFQDN | Where-Object {$_.Server -match $NewServer})) {
+            Add-RDServer -Role "RDS-LICENSING" -ConnectionBroker $ServerFQDN -Server $NewServer
+        }
+    }
+    #End of add remaining servers
+
     #Request Certs for web access, gateway, broker and publishing    
     $CertWebGatewayPath = (Join-path "C:\temp" $($WebGatewayFqdn + ".pfx"))
     $CertBrokerPath = (Join-path "C:\temp" $($BrokerFqdn + ".pfx"))
@@ -175,10 +207,10 @@ Else {
     #If not the first broker, just install SQL OBDC driver and join the farm
     InstallSQLClient
     If ($?) {
-        $MainBrokerFQDN = $MainBrokerServer + "." + $DomainName
+        $MainBrokerFQDN = $MainConnectionBroker + "." + $DomainName
 
         #As we're executing via SYSTEM, make sure the broker is able to manage servers
-        Invoke-Command -ComputerName $MainBrokerServer -Credential $DomainCreds -ScriptBlock {
+        Invoke-Command -ComputerName $MainConnectionBroker -Credential $DomainCreds -ScriptBlock {
             Param($DomainName,$BrokerName)
             Add-LocalGroupMember -Group "Administrators" -Member "$($DomainName)\$($BrokerName)$"
         } -ArgumentList $DomainName, $ServerName
@@ -200,7 +232,7 @@ Else {
         Add-RDServer -Role "RDS-CONNECTION-BROKER" -ConnectionBroker $MainBrokerFQDN -Server $ServerFQDN
         
         #Since we've added another broker, we have to import the cert again
-        $CertRemotePath = (Join-path "\\$MainBrokerServer\C$\temp" "*.pfx")
+        $CertRemotePath = (Join-path "\\$MainConnectionBroker\C$\temp" "*.pfx")
         $CertBrokerPath = (Join-path "C:\temp" $($BrokerFqdn + ".pfx"))
 
         #Copy the certs locally from first broker

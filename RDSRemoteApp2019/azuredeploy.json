@@ -67,7 +67,7 @@
         },
         "dcCount": {
             "type": "int",
-            "defaultValue": 1,
+            "defaultValue": 2,
             "metadata": {
                 "description": "How many Domain Controllers would you like to deploy?"
             }            
@@ -1097,9 +1097,9 @@
                                                         "DomainName": "[parameters('adDomainName')]",
                                                         "DNSServer": "[parameters('firstDcIP')]",
                                                         "MainConnectionBroker": "[parameters('MainConnectionBroker')]",
-                                                        "WebAccessServers": "[variables('WebAccessServers')]",
-                                                        "SessionHosts": "[variables('SessionHosts')]",
-                                                        "LicenseServers": "[variables('LicenseServers')]",
+                                                        "WebAccessServer": "[concat(parameters('WebAccessServerName'),'1')]",
+                                                        "SessionHost": "[concat(parameters('SessionHostName'),'1')]",
+                                                        "LicenseServer": "[concat(parameters('LicenseServerName'),'1')]",
                                                         "ExternalFqdn": "[parameters('ExternalFqdn')]",
                                                         "ExternalDnsDomain": "[parameters('ExternalDnsDomain')]",                                                        
                                                         "IntBrokerLBIP": "[parameters('intLbBrokerIP')]",
@@ -1137,7 +1137,7 @@
                                             ]
                                         },
                                         "protectedSettings": {
-                                            "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('ScriptName'),' -ProjectName ',parameters('projectName'),' -MainBrokerServer ',parameters('ConnectionBroker'),' -BrokerFqdn ',concat('broker.',parameters('ExternalDnsDomain')),' -WebGatewayServer ',parameters('WebAccessServer'),' -WebGatewayFqdn ',parameters('ExternalFqdn'),' -AzureSQLFQDN ',concat(parameters('projectName'),parameters('sqlServerName'),'.database.windows.net'),' -AzureSQLDBName ',parameters('rdsDBName'),' -Passwd ',parameters('adminPasswd'))]"
+                                            "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('ScriptName'),' -ProjectName ',parameters('projectName'),' -MainConnectionBroker ',parameters('MainConnectionBroker'),' -BrokerFqdn ',concat('broker.',parameters('ExternalDnsDomain')),' -WebGatewayServers ',variables('WebAccessServers'),' -SessionHosts ',variables('SessionHosts'),' -LicenseServers ',variables('LicenseServers'),' -WebGatewayFqdn ',parameters('ExternalFqdn'),' -AzureSQLFQDN ',concat(parameters('projectName'),parameters('sqlServerName'),'.database.windows.net'),' -AzureSQLDBName ',parameters('rdsDBName'),' -Passwd ',parameters('adminPasswd'))]"
                                         }
                                     }
                                 }                                

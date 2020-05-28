@@ -19,6 +19,7 @@
     Import-DscResource -ModuleName PSDesiredStateConfiguration,xActiveDirectory,xNetworking,ComputerManagementDSC,xComputerManagement,xDnsServer,NetworkingDsc
     [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
     $Interface = Get-NetAdapter | Where-Object Name -Like "Ethernet*" | Select-Object -First 1
+    $MyIP = ($Interface | Get-NetIPAddress -AddressFamily IPv4 | Select-Object -First 1).IPAddress
     $InterfaceAlias = $($Interface.Name)
 
     Node localhost
@@ -83,7 +84,7 @@
             Enabled = $True
             Ensure = "Present"
         }
-
+        
         xDnsServerAddress DnsServerAddress
         {
             Address        = $DNSServer
@@ -91,75 +92,111 @@
             AddressFamily  = 'IPv4'
             DependsOn = "[WindowsFeature]DNS"
         }
-        
-        xADDomain RootDomain
-        {
-            DomainName = $DomainName
-            DomainAdministratorCredential = $DomainCreds
-            SafemodeAdministratorPassword = $DomainCreds
-            DatabasePath = "$Env:windir\NTDS"
-            LogPath = "$Env:windir\NTDS"
-            SysvolPath = "$Env:windir\SYSVOL"
-            DependsOn = @("[WindowsFeature]AD-Domain-Services", "[xDnsServerAddress]DnsServerAddress")
-        }
 
-        xDnsServerForwarder SetForwarders
-        {
-            IsSingleInstance = 'Yes'
-            IPAddresses      = @('8.8.8.8', '8.8.4.4')
-            UseRootHint      = $false
-            DependsOn = @("[WindowsFeature]DNS", "[xADDomain]RootDomain")
-        }
-
-        Script AddExternalZone
-        {
-            SetScript = {
-                Add-DnsServerPrimaryZone -Name $Using:ExternalDnsDomain `
-                    -ReplicationScope "Forest" `
-                    -DynamicUpdate "Secure"
+        If ($MyIP -eq $DNSServer) {
+            xADDomain RootDomain
+            {
+                DomainName = $DomainName
+                DomainAdministratorCredential = $DomainCreds
+                SafemodeAdministratorPassword = $DomainCreds
+                DatabasePath = "$Env:windir\NTDS"
+                LogPath = "$Env:windir\NTDS"
+                SysvolPath = "$Env:windir\SYSVOL"
+                DependsOn = @("[WindowsFeature]AD-Domain-Services", "[xDnsServerAddress]DnsServerAddress")
             }
 
-            TestScript = {
-                If (Get-DnsServerZone -Name $Using:ExternalDnsDomain -ErrorAction SilentlyContinue) {
-                    Return $True
-                } Else {
-                    Return $False
+            xDnsServerForwarder SetForwarders
+            {
+                IsSingleInstance = 'Yes'
+                IPAddresses      = @('8.8.8.8', '8.8.4.4')
+                UseRootHint      = $false
+                DependsOn = @("[WindowsFeature]DNS", "[xADDomain]RootDomain")
+            }
+    
+            Script AddExternalZone
+            {
+                SetScript = {
+                    Add-DnsServerPrimaryZone -Name $Using:ExternalDnsDomain `
+                        -ReplicationScope "Forest" `
+                        -DynamicUpdate "Secure"
                 }
-            }
-
-            GetScript = {
-                @{
-                    Result = Get-DnsServerZone -Name $Using:ExternalDnsDomain -ErrorAction SilentlyContinue
+    
+                TestScript = {
+                    If (Get-DnsServerZone -Name $Using:ExternalDnsDomain -ErrorAction SilentlyContinue) {
+                        Return $True
+                    } Else {
+                        Return $False
+                    }
                 }
+    
+                GetScript = {
+                    @{
+                        Result = Get-DnsServerZone -Name $Using:ExternalDnsDomain -ErrorAction SilentlyContinue
+                    }
+                }
+    
+                DependsOn = "[xDnsServerForwarder]SetForwarders"
+            }
+    
+            xDnsRecord AddIntLBBrokerIP
+            {
+                Name = "broker"
+                Target = $IntBrokerLBIP
+                Zone = $ExternalDnsDomain
+                Type = "ARecord"
+                Ensure = "Present"
+                DependsOn = "[Script]AddExternalZone"
+            }
+    
+            xDnsRecord AddIntLBWebGWIP
+            {
+                Name = $WebGWDNS
+                Target = $IntWebGWLBIP
+                Zone = $ExternalDnsDomain
+                Type = "ARecord"
+                Ensure = "Present"
+                DependsOn = "[Script]AddExternalZone"
             }
 
-            DependsOn = "[xDnsServerForwarder]SetForwarders"
-        }
+            PendingReboot RebootAfterInstallingAD
+            {
+                Name = 'RebootAfterInstallingAD'
+                DependsOn = @("[xADDomain]RootDomain","[xDnsServerForwarder]SetForwarders")
+            }                       
+        } Else {            
+            xWaitForADDomain DscForestWait
+            {
+                DomainName = $DomainName
+                DomainUserCredential= $DomainCreds
+                RetryCount = 30
+                RetryIntervalSec = 2400
+                DependsOn = @("[WindowsFeature]AD-Domain-Services", "[xDnsServerAddress]DnsServerAddress")
+            }
+            
+            xADDomainController NextDC
+            {
+                DomainName = $DomainName
+                DomainAdministratorCredential = $DomainCreds
+                SafemodeAdministratorPassword = $DomainCreds
+                DatabasePath = "$Env:windir\NTDS"
+                LogPath = "$Env:windir\NTDS"
+                SysvolPath = "$Env:windir\SYSVOL"
+                DependsOn = @("[xWaitForADDomain]DscForestWait","[WindowsFeature]AD-Domain-Services", "[xDnsServerAddress]DnsServerAddress")
+            }
 
-        xDnsRecord AddIntLBBrokerIP
-        {
-            Name = "broker"
-            Target = $IntBrokerLBIP
-            Zone = $ExternalDnsDomain
-            Type = "ARecord"
-            Ensure = "Present"
-            DependsOn = "[Script]AddExternalZone"
-        }
+            xDnsServerForwarder SetForwarders
+            {
+                IsSingleInstance = 'Yes'
+                IPAddresses      = @('8.8.8.8', '8.8.4.4')
+                UseRootHint      = $false
+                DependsOn = @("[WindowsFeature]DNS", "[xADDomainController]NextDC")
+            }            
 
-        xDnsRecord AddIntLBWebGWIP
-        {
-            Name = $WebGWDNS
-            Target = $IntWebGWLBIP
-            Zone = $ExternalDnsDomain
-            Type = "ARecord"
-            Ensure = "Present"
-            DependsOn = "[Script]AddExternalZone"
-        }
-        
-        PendingReboot RebootAfterInstallingAD
-        {
-            Name = 'RebootAfterInstallingAD'
-            DependsOn = @("[xADDomain]RootDomain","[xDnsServerForwarder]SetForwarders")
+            PendingReboot RebootAfterInstallingAD
+            {
+                Name = 'RebootAfterInstallingAD'
+                DependsOn = @("[xADDomainController]NextDC","[xDnsServerForwarder]SetForwarders")
+            }            
         }        
     }
 }
@@ -242,8 +279,8 @@ Configuration RDWebGateway
         {
             DomainName = $DomainName
             Credential = $DomainCreds
-            WaitTimeout = 1200
-            RestartCount = 15
+            WaitTimeout = 2400
+            RestartCount = 30
             WaitForValidCredentials = $True
             DependsOn = @("[xDnsServerAddress]DnsServerAddress","[WindowsFeature]RSAT-AD-PowerShell")
         }
@@ -430,9 +467,9 @@ Configuration RDSDeployment
     $DNSServer = $RDSParameters[0].DNSServer
     $TimeZoneID = $RDSParameters[0].TimeZoneID
     $MainConnectionBroker = $($RDSParameters[0].MainConnectionBroker + "." + $DomainName)
-    $WebAccessServers = $RDSParameters[0].WebAccessServers
-    $SessionHosts = $RDSParameters[0].SessionHosts
-    $LicenseServers = $RDSParameters[0].LicenseServers
+    $WebAccessServer = $RDSParameters[0].WebAccessServer
+    $SessionHost = $RDSParameters[0].SessionHost
+    $LicenseServer = $RDSParameters[0].LicenseServer
     $ExternalFqdn = $RDSParameters[0].ExternalFqdn
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration -ModuleVersion 1.1
@@ -549,76 +586,49 @@ Configuration RDSDeployment
             xRDSessionDeployment Deployment
             {
                 ConnectionBroker = $MainConnectionBroker
-                WebAccessServer = $WebAccessServers[0]
-                SessionHost = $SessionHosts[0]
+                WebAccessServer = $WebAccessServer
+                SessionHost = $SessionHost
                 PsDscRunAsCredential = $DomainCreds
                 DependsOn = "[xComputer]DomainJoin"
             }
 
-            $I = 0
-            ForEach($WebAccessServer In $WebAccessServers) {
-                $I++
-                $RDWebServer = "AddWebAccess" + $I
-
-                xRDServer $RDWebServer
-                {
-                    Role = 'RDS-Web-Access'
-                    Server = $WebAccessServer
-                    PsDscRunAsCredential = $DomainCreds
-                    DependsOn = "[xRDSessionDeployment]Deployment"
-                }                
+            xRDServer AddLicenseServer
+            {
+                Role = 'RDS-Licensing'
+                Server = $LicenseServer
+                PsDscRunAsCredential = $DomainCreds
+                DependsOn = "[xRDSessionDeployment]Deployment"
             }
-
-            $I = 0
-            ForEach($LicenseServer In $LicenseServers) {
-                $I++
-                $RDServer = "AddLicenseServer" + $I
-                $LSConfig = "LicenseConfiguration" + $I
-
-                xRDServer $RDServer
-                {
-                    Role = 'RDS-Licensing'
-                    Server = $LicenseServer
-                    PsDscRunAsCredential = $DomainCreds
-                    DependsOn = "[xRDSessionDeployment]Deployment"
-                }
-                
-                xRDLicenseConfiguration $LSConfig
-                {
-                    ConnectionBroker = $MainConnectionBroker
-                    LicenseServer = $LicenseServer
-                    LicenseMode = 'PerUser'
-                    PsDscRunAsCredential = $DomainCreds
-                    DependsOn = "[xRDServer]$RDServer"
-                }
+            
+            xRDLicenseConfiguration LicenseConfiguration
+            {
+                ConnectionBroker = $MainConnectionBroker
+                LicenseServer = $LicenseServer
+                LicenseMode = 'PerUser'
+                PsDscRunAsCredential = $DomainCreds
+                DependsOn = "[xRDServer]AddLicenseServer"
             }
-
-            $I = 0
-            ForEach($WebAccessServer In $WebAccessServers) {
-                $I++
-                $RDGWServer = "AddGatewayServer" + $I
                 
-                xRDServer $RDGWServer
-                {
-                    Role = 'RDS-Gateway'
-                    Server = $WebAccessServer
-                    GatewayExternalFqdn = $ExternalFqdn
-                    PsDscRunAsCredential = $DomainCreds
-                    DependsOn = "[xRDSessionDeployment]Deployment"
-                }
+            xRDServer AddGatewayServer
+            {
+                Role = 'RDS-Gateway'
+                Server = $WebAccessServer
+                GatewayExternalFqdn = $ExternalFqdn
+                PsDscRunAsCredential = $DomainCreds
+                DependsOn = "[xRDLicenseConfiguration]LicenseConfiguration"
             }
 
             xRDGatewayConfiguration GatewayConfiguration
             {
                 ConnectionBroker = $MainConnectionBroker
-                GatewayServer = $WebAccessServer[0]
+                GatewayServer = $WebAccessServer
                 ExternalFqdn = $ExternalFqdn
                 GatewayMode = 'Custom'
                 LogonMethod = 'Password'
                 UseCachedCredentials = $true
                 BypassLocal = $false
                 PsDscRunAsCredential = $DomainCreds
-                DependsOn = "[xRDServer]AddGatewayServer1"
+                DependsOn = "[xRDServer]AddGatewayServer"
             }
             
             xRDSessionCollection Collection
@@ -626,7 +636,7 @@ Configuration RDSDeployment
                 ConnectionBroker = $MainConnectionBroker
                 CollectionName = $CollectionName
                 CollectionDescription = $CollectionDescription
-                SessionHost = $SessionHosts[0]
+                SessionHost = $SessionHost
                 PsDscRunAsCredential = $DomainCreds
                 DependsOn = "[xRDGatewayConfiguration]GatewayConfiguration"
             }
