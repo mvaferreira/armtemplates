@@ -467,9 +467,9 @@ Configuration RDSDeployment
     $DNSServer = $RDSParameters[0].DNSServer
     $TimeZoneID = $RDSParameters[0].TimeZoneID
     $MainConnectionBroker = $($RDSParameters[0].MainConnectionBroker + "." + $DomainName)
-    $WebAccessServer = $RDSParameters[0].WebAccessServer
-    $SessionHost = $RDSParameters[0].SessionHost
-    $LicenseServer = $RDSParameters[0].LicenseServer
+    $WebAccessServer = $RDSParameters[0].WebAccessServer + "." + $DomainName)
+    $SessionHost = $RDSParameters[0].SessionHost + "." + $DomainName)
+    $LicenseServer = $RDSParameters[0].LicenseServer + "." + $DomainName)
     $ExternalFqdn = $RDSParameters[0].ExternalFqdn
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration -ModuleVersion 1.1
