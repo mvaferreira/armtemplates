@@ -556,6 +556,20 @@ Configuration RDSDeployment
             }
 
             $I = 0
+            ForEach($WebAccessServer In $WebAccessServers) {
+                $I++
+                $RDWebServer = "AddWebAccess" + $I
+
+                xRDServer $RDWebServer
+                {
+                    Role = 'RDS-Web-Access'
+                    Server = $WebAccessServer
+                    PsDscRunAsCredential = $DomainCreds
+                    DependsOn = "[xRDSessionDeployment]Deployment"
+                }                
+            }
+
+            $I = 0
             ForEach($LicenseServer In $LicenseServers) {
                 $I++
                 $RDServer = "AddLicenseServer" + $I
@@ -583,7 +597,6 @@ Configuration RDSDeployment
             ForEach($WebAccessServer In $WebAccessServers) {
                 $I++
                 $RDGWServer = "AddGatewayServer" + $I
-                $GWConfig = "GatewayConfiguration" + $I
                 
                 xRDServer $RDGWServer
                 {
@@ -591,21 +604,21 @@ Configuration RDSDeployment
                     Server = $WebAccessServer
                     GatewayExternalFqdn = $ExternalFqdn
                     PsDscRunAsCredential = $DomainCreds
-                    DependsOn = "[xRDLicenseConfiguration]LicenseConfiguration1"
+                    DependsOn = "[xRDSessionDeployment]Deployment"
                 }
+            }
 
-                xRDGatewayConfiguration $GWConfig
-                {
-                    ConnectionBroker = $MainConnectionBroker
-                    GatewayServer = $WebAccessServer
-                    ExternalFqdn = $ExternalFqdn
-                    GatewayMode = 'Custom'
-                    LogonMethod = 'Password'
-                    UseCachedCredentials = $true
-                    BypassLocal = $false
-                    PsDscRunAsCredential = $DomainCreds
-                    DependsOn = "[xRDServer]$RDGWServer"
-                }
+            xRDGatewayConfiguration GatewayConfiguration
+            {
+                ConnectionBroker = $MainConnectionBroker
+                GatewayServer = $WebAccessServer[0]
+                ExternalFqdn = $ExternalFqdn
+                GatewayMode = 'Custom'
+                LogonMethod = 'Password'
+                UseCachedCredentials = $true
+                BypassLocal = $false
+                PsDscRunAsCredential = $DomainCreds
+                DependsOn = "[xRDServer]AddGatewayServer1"
             }
             
             xRDSessionCollection Collection
@@ -615,7 +628,7 @@ Configuration RDSDeployment
                 CollectionDescription = $CollectionDescription
                 SessionHost = $SessionHosts[0]
                 PsDscRunAsCredential = $DomainCreds
-                DependsOn = "[xRDGatewayConfiguration]GatewayConfiguration1"
+                DependsOn = "[xRDGatewayConfiguration]GatewayConfiguration"
             }
         }
     }
