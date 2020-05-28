@@ -14,6 +14,7 @@
     $ExternalDnsDomain = $RDSParameters[0].ExternalDnsDomain
     $IntBrokerLBIP = $RDSParameters[0].IntBrokerLBIP
     $IntWebGWLBIP = $RDSParameters[0].IntWebGWLBIP
+    $WebGWDNS = $RDSParameters[0].WebGWDNS
     
     Import-DscResource -ModuleName PSDesiredStateConfiguration,xActiveDirectory,xNetworking,ComputerManagementDSC,xComputerManagement,xDnsServer,NetworkingDsc
     [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)",$Admincreds.Password)
@@ -147,7 +148,7 @@
 
         xDnsRecord AddIntLBWebGWIP
         {
-            Name = "broker"
+            Name = $WebGWDNS
             Target = $IntWebGWLBIP
             Zone = $ExternalDnsDomain
             Type = "ARecord"

@@ -800,6 +800,9 @@
                     },
                     "rdsDBName": {
                         "value": "[variables('rdsDBName')]"
+                    },
+                    "webGwName": {
+                        "value": "[parameters('DNSEntry')]"
                     }
                 },
                 "template": {
@@ -900,6 +903,9 @@
                             "type": "string"
                         },                       
                         "rdsDBName": {
+                            "type": "string"
+                        },
+                        "webGwName": {
                             "type": "string"
                         }
                     },
@@ -1068,7 +1074,8 @@
                                                         "SessionHost": "[parameters('SessionHost')]",
                                                         "LicenseServer": "[parameters('LicenseServer')]",
                                                         "IntBrokerLBIP": "[parameters('intLbBrokerIP')]",
-                                                        "IntWebGWLBIP": "[parameters('intLbWebGWIP')]"
+                                                        "IntWebGWLBIP": "[parameters('intLbWebGWIP')]",
+                                                        "WebGWDNS": "[parameters('webGwName')]"
                                                     }
                                                 ]
                                             }
