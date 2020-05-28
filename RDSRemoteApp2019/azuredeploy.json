@@ -81,21 +81,21 @@
         },
         "rdwgCount": {
             "type": "int",
-            "defaultValue": 1,
+            "defaultValue": 2,
             "metadata": {
                 "description": "How many RD Web Access/Gateways would you like to deploy?"
             }            
         },
         "rdshCount": {
             "type": "int",
-            "defaultValue": 1,
+            "defaultValue": 2,
             "metadata": {
                 "description": "How many RD Session Hosts would you like to deploy?"
             }            
         },
         "lsfsCount": {
             "type": "int",
-            "defaultValue": 1,
+            "defaultValue": 2,
             "metadata": {
                 "description": "How many License/File Servers would you like to deploy?"
             }            
@@ -788,7 +788,7 @@
                     "LicenseServerName": {
                         "value": "[parameters('vmProperties')[4].name]"
                     },
-                    "LicenServerCount": {
+                    "LicenseServerCount": {
                         "value": "[parameters('vmProperties')[4].count]"
                     },
                     "ExternalFqdn": {
@@ -948,40 +948,25 @@
                                 "id": "[concat(resourceId('Microsoft.Network/loadBalancers',parameters('pubLbName')),'/backendAddressPools/',parameters('pubLbBackEndPool'))]"
                             }                            
                         ],
-                        "intlbRef": "[resourceId(resourceGroup().name,'Microsoft.Network/loadBalancers',parameters('intLbName'))]"
+                        "intlbRef": "[resourceId(resourceGroup().name,'Microsoft.Network/loadBalancers',parameters('intLbName'))]",
+                        "copy": [
+                            {
+                                "name": "WebAccessServers",
+                                "count": "[parameters('WebAccessServerCount')]",
+                                "input": "[concat(parameters('WebAccessServerName'),copyIndex(1),'.',parameters('adDomainName'))]"
+                            },
+                            {
+                                "name": "SessionHosts",
+                                "count": "[parameters('SessionHostCount')]",
+                                "input": "[concat(parameters('SessionHostName'),copyIndex(1),'.',parameters('adDomainName'))]"
+                            },
+                            {
+                                "name": "LicenseServers",
+                                "count": "[parameters('LicenseServerCount')]",
+                                "input": "[concat(parameters('LicenseServerName'),copyIndex(1),'.',parameters('adDomainName'))]"
+                            }                            
+                        ]
                     },
-                    "functions": [
-                        {
-                            "namespace": "rds",
-                            "members": {
-                                "GetAllVMsForRole": {
-                                    "parameters": [
-                                        {
-                                            "name": "roleName",
-                                            "type": "string"
-                                        },
-                                        {
-                                            "name": "adDomainName",
-                                            "type": "string"
-                                        },
-                                        {
-                                            "name": "count",
-                                            "type": "int"
-                                        }
-                                    ],
-                                    "output": {
-                                        "VMNames": {
-                                            "type": "array",
-                                            "copy": {
-                                                "count": "[parameters('count')]",
-                                                "input": "[concat(parameters('roleName'),copyIndex(1),'.',parameters('adDomainName'))]"
-                                            }
-                                        } 
-                                    }
-                                }
-                            }
-                        }
-                    ],
                     "resources": [
                         { // Public IP Addresses
                             "type": "Microsoft.Network/publicIPAddresses",
@@ -1112,9 +1097,9 @@
                                                         "DomainName": "[parameters('adDomainName')]",
                                                         "DNSServer": "[parameters('firstDcIP')]",
                                                         "MainConnectionBroker": "[parameters('MainConnectionBroker')]",
-                                                        "WebAccessServers": "[rds.GetAllVMsForRole(parameters('WebAccessServerName'),parameters('adDomainName'),parameters('WebAccessServerCount'))]",
-                                                        "SessionHosts": "[rds.GetAllVMsForRole(parameters('SessionHostName'),parameters('adDomainName'),parameters('SessionHostCount'))]",
-                                                        "LicenseServers": "[rds.GetAllVMsForRole(parameters('LicenseServerName'),parameters('adDomainName'),parameters('LicenseServerCount'))]",
+                                                        "WebAccessServers": "[variables('WebAccessServers')]",
+                                                        "SessionHosts": "[variables('SessionHosts')]",
+                                                        "LicenseServers": "[variables('LicenseServers')]",
                                                         "ExternalFqdn": "[parameters('ExternalFqdn')]",
                                                         "ExternalDnsDomain": "[parameters('ExternalDnsDomain')]",                                                        
                                                         "IntBrokerLBIP": "[parameters('intLbBrokerIP')]",
