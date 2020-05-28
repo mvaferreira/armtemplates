@@ -38,11 +38,12 @@ Function RequestCert([string]$Fqdn) {
     $AcmeBody = Get-KeyAuthorization $auth.HTTP01Token (Get-PAAccount)
 
     Invoke-Command -ComputerName $WebGatewayServer -Credential $DomainCreds -ScriptBlock {
-        Param($auth, $AcmeBody)
+        Param($auth, $AcmeBody, $BrokerName, $DomainName)
         $AcmePath = "C:\Inetpub\wwwroot\.well-known\acme-challenge"
         New-Item -ItemType Directory -Path $AcmePath -Force
         New-Item -Path $AcmePath -Name $auth.HTTP01Token -ItemType File -Value $AcmeBody
-    } -ArgumentList $auth, $AcmeBody
+        Add-LocalGroupMember -Group "Administrators" -Member "$($DomainName)\$($BrokerName)$"
+    } -ArgumentList $auth, $AcmeBody, $ServerObj.DNSHostName, $DomainName
 
     $auth.HTTP01Url | Send-ChallengeAck
 
