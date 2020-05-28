@@ -1,14 +1,22 @@
 Param(
     [Parameter(Mandatory)]
-    [Array]$BrokerParameters
-)
+    [string]$ConnectionBroker,
 
-$ConnectionBroker = $BrokerParameters[0].ConnectionBroker
-$AzureSQLFQDN = $BrokerParameters[0].AzureSQLFQDN
-$AzureSQLDBName = $BrokerParameters[0].AzureSQLDBName
-$AzureSQLUserID = $BrokerParameters[0].AzureSQLUserID
-$AzureSQLPasswd = $BrokerParameters[0].AzureSQLPasswd
-$BrokerFQDN = $BrokerParameters[0].BrokerFQDN
+    [Parameter(Mandatory)]    
+    [string]$AzureSQLFQDN,
+
+    [Parameter(Mandatory)]    
+    [string]$AzureSQLDBName,
+
+    [Parameter(Mandatory)]    
+    [string]$AzureSQLUserID,
+
+    [Parameter(Mandatory)]    
+    [string]$AzureSQLPasswd,
+
+    [Parameter(Mandatory)]    
+    [string]$BrokerFQDN
+)
 
 If (-Not (Test-Path "C:\temp")) {
     New-Item -ItemType Directory -Path "C:\temp" -Force

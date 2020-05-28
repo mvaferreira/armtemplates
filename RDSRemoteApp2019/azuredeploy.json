@@ -912,16 +912,6 @@
                     "variables": {
                         "certScriptPath": "[uri(parameters('dscLocation'),parameters('certScriptName'))]",
                         "brokerScriptPath": "[uri(parameters('dscLocation'),parameters('brokerHAScriptName'))]",
-                        "BrokerParameters": [
-                            {
-                                "ConnectionBroker": "[concat(parameters('ConnectionBroker'),'.',parameters('adDomainName'))]",
-                                "AzureSQLFQDN": "[concat(parameters('projectName'),parameters('sqlServerName'),'.database.windows.net')]",
-                                "AzureSQLDBName": "[parameters('rdsDBName')]",
-                                "AzureSQLUserID": "[parameters('projectName')]",
-                                "AzureSQLPasswd": "[parameters('adminPasswd')]",
-                                "BrokerFQDN": "[concat('broker.',parameters('ExternalDnsDomain'))]"
-                            }
-                        ],
                         "empty": [],
                         "intlbPool": [
                             {
@@ -1132,7 +1122,7 @@
                                             ]
                                         },
                                         "protectedSettings": {
-                                            "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('brokerHAScriptName'),' -BrokerParameters ',variables('BrokerParameters'))]"
+                                            "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('brokerHAScriptName'),' -ConnectionBroker ',concat(parameters('ConnectionBroker'),'.',parameters('adDomainName')),' -AzureSQLFQDN ',concat(parameters('projectName'),parameters('sqlServerName'),'.database.windows.net'),' -AzureSQLDBName ',parameters('rdsDBName'),' -AzureSQLUserID ',parameters('projectName'),' -AzureSQLPasswd ',parameters('adminPasswd'),' -BrokerFQDN ',concat('broker.',parameters('ExternalDnsDomain')))]"
                                         }
                                     }
                                 }                                
