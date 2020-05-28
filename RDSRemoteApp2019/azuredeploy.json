@@ -770,17 +770,26 @@
                     "firstDcIP": {
                         "value": "[variables('firstDcIP')]"
                     },
-                    "ConnectionBroker": {
+                    "MainConnectionBroker": {
                         "value": "[concat(parameters('vmProperties')[2].name,'1')]"
                     },
-                    "WebAccessServer": {
-                        "value": "[concat(parameters('vmProperties')[1].name,'1')]"
+                    "WebAccessServerName": {
+                        "value": "[parameters('vmProperties')[1].name]"
                     },
-                    "SessionHost": {
-                        "value": "[concat(parameters('vmProperties')[3].name,'1')]"
+                    "WebAccessServerCount": {
+                        "value": "[parameters('vmProperties')[1].count]"
                     },
-                    "LicenseServer": {
-                        "value": "[concat(parameters('vmProperties')[4].name,'1')]"
+                    "SessionHostName": {
+                        "value": "[parameters('vmProperties')[3].name]"
+                    },
+                    "SessionHostCount": {
+                        "value": "[parameters('vmProperties')[3].count]"
+                    },                    
+                    "LicenseServerName": {
+                        "value": "[parameters('vmProperties')[4].name]"
+                    },
+                    "LicenServerCount": {
+                        "value": "[parameters('vmProperties')[4].count]"
                     },
                     "ExternalFqdn": {
                         "value": "[parameters('ExternalFqdn')]"
@@ -871,17 +880,26 @@
                         "firstDcIP": {
                             "type": "string"
                         },
-                        "ConnectionBroker": {
+                        "MainConnectionBroker": {
                             "type": "string"
                         },
-                        "WebAccessServer": {
+                        "WebAccessServerName": {
                             "type": "string"
                         },
-                        "SessionHost": {
+                        "WebAccessServerCount": {
+                            "type": "int"
+                        },
+                        "SessionHostName": {
                             "type": "string"
                         },
-                        "LicenseServer": {
+                        "SessionHostCount": {
+                            "type": "int"
+                        },
+                        "LicenseServerName": {
                             "type": "string"
+                        },
+                        "LicenseServerCount": {
+                            "type": "int"
                         },
                         "ExternalFqdn": {
                             "type": "string"
@@ -932,6 +950,38 @@
                         ],
                         "intlbRef": "[resourceId(resourceGroup().name,'Microsoft.Network/loadBalancers',parameters('intLbName'))]"
                     },
+                    "functions": [
+                        {
+                            "namespace": "rds",
+                            "members": {
+                                "GetAllVMsForRole": {
+                                    "parameters": [
+                                        {
+                                            "name": "roleName",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "adDomainName",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "count",
+                                            "type": "int"
+                                        }
+                                    ],
+                                    "output": {
+                                        "VMNames": {
+                                            "type": "array",
+                                            "copy": {
+                                                "count": "[parameters('count')]",
+                                                "input": "[concat(parameters('roleName'),copyIndex(1),'.',parameters('adDomainName'))]"
+                                            }
+                                        } 
+                                    }
+                                }
+                            }
+                        }
+                    ],
                     "resources": [
                         { // Public IP Addresses
                             "type": "Microsoft.Network/publicIPAddresses",
@@ -1061,12 +1111,12 @@
                                                         "TimeZoneID": "[parameters('TimeZoneID')]",
                                                         "DomainName": "[parameters('adDomainName')]",
                                                         "DNSServer": "[parameters('firstDcIP')]",
-                                                        "ConnectionBroker": "[parameters('ConnectionBroker')]",
-                                                        "WebAccessServer": "[parameters('WebAccessServer')]",
+                                                        "MainConnectionBroker": "[parameters('MainConnectionBroker')]",
+                                                        "WebAccessServers": "[rds.GetAllVMsForRole(parameters('WebAccessServerName'),parameters('adDomainName'),parameters('WebAccessServerCount'))]",
+                                                        "SessionHosts": "[rds.GetAllVMsForRole(parameters('SessionHostName'),parameters('adDomainName'),parameters('SessionHostCount'))]",
+                                                        "LicenseServers": "[rds.GetAllVMsForRole(parameters('LicenseServerName'),parameters('adDomainName'),parameters('LicenseServerCount'))]",
                                                         "ExternalFqdn": "[parameters('ExternalFqdn')]",
-                                                        "ExternalDnsDomain": "[parameters('ExternalDnsDomain')]",
-                                                        "SessionHost": "[parameters('SessionHost')]",
-                                                        "LicenseServer": "[parameters('LicenseServer')]",
+                                                        "ExternalDnsDomain": "[parameters('ExternalDnsDomain')]",                                                        
                                                         "IntBrokerLBIP": "[parameters('intLbBrokerIP')]",
                                                         "IntWebGWLBIP": "[parameters('intLbWebGWIP')]",
                                                         "WebGWDNS": "[parameters('webGwName')]"

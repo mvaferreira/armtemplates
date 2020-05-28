@@ -197,7 +197,17 @@ Else {
         }
 
         #RDS HA Deployment is available, adding to RDS Broker farm.
-        Add-RDServer -Role "RDS-CONNECTION-BROKER" -ConnectionBroker $MainBrokerFQDN -Server $ServerFQDN        
+        Add-RDServer -Role "RDS-CONNECTION-BROKER" -ConnectionBroker $MainBrokerFQDN -Server $ServerFQDN
+        
+        #Since we've added another broker, we have to import the cert again
+        $CertRemotePath = (Join-path "\\$MainBrokerServer\C$\temp" "*.pfx")
+        $CertBrokerPath = (Join-path "C:\temp" $($BrokerFqdn + ".pfx"))
+
+        #Copy the certs locally from first broker
+        Copy-Item -Path $CertRemotePath -Destination "C:\Temp"
+
+        Set-RDCertificate -Role RDRedirector -ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $MainBrokerFQDN -Force
+        Set-RDCertificate -Role RDPublishing -ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $MainBrokerFQDN -Force        
     }
 }
 

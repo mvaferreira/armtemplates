@@ -11,10 +11,11 @@ If (-Not (Get-AzResourceGroup -Name $RG -ErrorAction SilentlyContinue)) {
     New-AzResourceGroup -Name $RG -Location $Location
 }
 
+# Change the following paths
 $templateFile = "C:\Marcus\ARMTemplates\RDSRemoteApp2019\azuredeploy.json"
 $parameterFile = "C:\Marcus\ARMTemplates\RDSRemoteApp2019\azuredeploy.parameters.lab.json"
 
-Write-host "[$(Get-Date)] Deployment started..."
+Write-host "[$(Get-Date)] Deployment started..." -ForegroundColor Green
 
 New-AzResourceGroupDeployment -Name "RDS2019Deployment" `
     -ResourceGroupName $RG `
@@ -25,10 +26,8 @@ New-AzResourceGroupDeployment -Name "RDS2019Deployment" `
     -Force
 
 If ($?) {
-    $Result = "Successful."
+    Write-host "[$(Get-Date)] Deployment finished. Result: Successful." -ForegroundColor Green
 }
 Else {
-    $Result = "Failed."
+    Write-host "[$(Get-Date)] Deployment finished. Result: Failed." -ForegroundColor Red
 }
-
-Write-host "[$(Get-Date)] Deployment finished. Result: $($Result)"

@@ -429,10 +429,10 @@ Configuration RDSDeployment
     $DomainName = $RDSParameters[0].DomainName
     $DNSServer = $RDSParameters[0].DNSServer
     $TimeZoneID = $RDSParameters[0].TimeZoneID
-    $ConnectionBroker = $($RDSParameters[0].ConnectionBroker + "." + $DomainName)
-    $WebAccessServer = $($RDSParameters[0].WebAccessServer + "." + $DomainName)
-    $SessionHost = $($RDSParameters[0].SessionHost + "." + $DomainName)
-    $LicenseServer = $($RDSParameters[0].LicenseServer + "." + $DomainName)
+    $MainConnectionBroker = $($RDSParameters[0].MainConnectionBroker + "." + $DomainName)
+    $WebAccessServers = $RDSParameters[0].WebAccessServers
+    $SessionHosts = $RDSParameters[0].SessionHosts
+    $LicenseServers = $RDSParameters[0].LicenseServers
     $ExternalFqdn = $RDSParameters[0].ExternalFqdn
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration -ModuleVersion 1.1
@@ -545,12 +545,12 @@ Configuration RDSDeployment
             ValueData = "1"
         }
 
-        If ($($Env:COMPUTERNAME) -eq $($RDSParameters[0].ConnectionBroker)) {
+        If ($($Env:COMPUTERNAME) -eq $($RDSParameters[0].MainConnectionBroker)) {
             xRDSessionDeployment Deployment
             {
-                ConnectionBroker = $ConnectionBroker
-                WebAccessServer = $WebAccessServer
-                SessionHost = $SessionHost
+                ConnectionBroker = $MainConnectionBroker
+                WebAccessServer = $WebAccessServers
+                SessionHost = $SessionHosts
                 PsDscRunAsCredential = $DomainCreds
                 DependsOn = "[xComputer]DomainJoin"
             }
@@ -558,15 +558,15 @@ Configuration RDSDeployment
             xRDServer AddLicenseServer
             {
                 Role = 'RDS-Licensing'
-                Server = $LicenseServer
+                Server = $LicenseServers
                 PsDscRunAsCredential = $DomainCreds
                 DependsOn = "[xRDSessionDeployment]Deployment"
             }
 
             xRDLicenseConfiguration LicenseConfiguration
             {
-                ConnectionBroker = $ConnectionBroker
-                LicenseServer = @( $LicenseServer )
+                ConnectionBroker = $MainConnectionBroker
+                LicenseServer = $LicenseServers
                 LicenseMode = 'PerUser'
                 PsDscRunAsCredential = $DomainCreds
                 DependsOn = "[xRDServer]AddLicenseServer"
@@ -575,7 +575,7 @@ Configuration RDSDeployment
             xRDServer AddGatewayServer
             {
                 Role = 'RDS-Gateway'
-                Server = $WebAccessServer
+                Server = $WebAccessServers
                 GatewayExternalFqdn = $ExternalFqdn
                 PsDscRunAsCredential = $DomainCreds
                 DependsOn = "[xRDLicenseConfiguration]LicenseConfiguration"
@@ -583,8 +583,8 @@ Configuration RDSDeployment
 
             xRDGatewayConfiguration GatewayConfiguration
             {
-                ConnectionBroker = $ConnectionBroker
-                GatewayServer = $WebAccessServer
+                ConnectionBroker = $MainConnectionBroker
+                GatewayServer = $WebAccessServers
                 ExternalFqdn = $ExternalFqdn
                 GatewayMode = 'Custom'
                 LogonMethod = 'Password'
@@ -596,10 +596,10 @@ Configuration RDSDeployment
             
             xRDSessionCollection Collection
             {
-                ConnectionBroker = $ConnectionBroker
+                ConnectionBroker = $MainConnectionBroker
                 CollectionName = $CollectionName
                 CollectionDescription = $CollectionDescription
-                SessionHost = $SessionHost
+                SessionHost = $SessionHosts
                 PsDscRunAsCredential = $DomainCreds
                 DependsOn = "[xRDGatewayConfiguration]GatewayConfiguration"
             }
