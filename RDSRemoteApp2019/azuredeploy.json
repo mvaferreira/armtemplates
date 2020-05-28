@@ -11,15 +11,24 @@
         },
         "DNSEntry": {
             "type": "string",
-            "defaultValue": "remoteapps"
+            "defaultValue": "remoteapps",
+            "metadata": {
+                "description": "The name for web access and gateway."
+            }
         },
         "DNSZone": {
             "type": "string",
-            "defaultValue": "contoso.com"
+            "defaultValue": "contoso.com",
+            "metadata": {
+                "description": "External DNS domain zone."
+            }
         },
         "DNSZoneResourceGroup": {
             "type": "string",
-            "defaultValue": "rgdns"
+            "defaultValue": "rgdns",
+            "metadata": {
+                "description": "Resource group name for external dns zone to modify, if 'CreateDNSEntry' is true."
+            }
         },
         "CreateDNSEntry": {
             "type": "bool",
@@ -27,7 +36,10 @@
         },
         "ExternalFqdn": {
             "type": "string",
-            "defaultValue": "[concat(parameters('DNSEntry'),'.',parameters('DNSZone'))]"
+            "defaultValue": "[concat(parameters('DNSEntry'),'.',parameters('DNSZone'))]",
+            "metadata": {
+                "description": "Fully qualified external domain name. eg. remoteapps.contoso.com"
+            }
         },
         "TimeZoneID": {
             "type": "string",
@@ -188,7 +200,10 @@
         },       
         "_artifactsLocation": {
             "type": "string",
-            "defaultValue": "https://raw.githubusercontent.com/mvaferreira/armtemplates/master/RDSRemoteApp2019/"
+            "defaultValue": "https://raw.githubusercontent.com/mvaferreira/armtemplates/master/RDSRemoteApp2019/",
+            "metadata": {
+                "description": "Location of all scripts and DSC resources for RDS deployment."
+            }
         }
     },
     "variables": {
@@ -640,9 +655,9 @@
             }
         }, // Public Load Balancer
         { // Azure SQL Server
-            "name": "[concat(parameters('projectName'),'sqlsrv')]",
+            "name": "[concat(parameters('projectName'),variables('sqlServerName'))]",
             "type": "Microsoft.Sql/servers",
-            "apiVersion": "2014-04-01",
+            "apiVersion": "2019-06-01-preview",
             "location": "[resourceGroup().location]",
             "condition": "[parameters('createSqlServerAndDB')]",
             "properties": {
@@ -651,17 +666,17 @@
             },
             "resources": [
                 {
-                    "type": "Microsoft.Sql/servers/virtualNetworkRules",
-                    "apiVersion": "2015-05-01-preview",
+                    "type": "firewallRules",
+                    "apiVersion": "2014-04-01",
                     "dependsOn": [
-                        "[resourceId('Microsoft.Sql/servers', concat(parameters('projectName'),'sqlsrv'))]"
+                        "[resourceId('Microsoft.Sql/servers', concat(parameters('projectName'),variables('sqlServerName')))]"
                     ],
                     "condition": "[parameters('createSqlServerAndDB')]",
                     "location": "[resourceGroup().location]",
-                    "name": "[concat(parameters('projectName'),'sqlsrv','/AllowVNetIPs')]",
+                    "name": "AllowAllWindowsAzureIps",
                     "properties": {
-                        "virtualNetworkSubnetId": "[concat(parameters('projectName'),'vnet', '/subnets/mfrdsmain')]",
-                        "ignoreMissingVnetServiceEndpoint": false
+                        "startIpAddress": "0.0.0.0",
+                        "endIpAddress": "0.0.0.0"
                     }
                 }
             ]
@@ -1071,7 +1086,7 @@
                                     "apiVersion": "2019-12-01",
                                     "name": "[concat(parameters('vmName'),copyIndex(1),'/pwshext')]",
                                     "location": "[resourceGroup().location]",
-                                    "condition": "[and(contains(parameters('vmName'),'cb'),equals(copyIndex(1),1),parameters('requestCert'))]",
+                                    "condition": "[and(contains(parameters('vmName'),'cb'),parameters('requestCert'))]",
                                     "dependsOn": [
                                         "[resourceId('Microsoft.Compute/virtualMachines',concat(parameters('vmName'),copyIndex(1)))]",
                                         "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('vmName'),copyIndex(1)),'dscext')]"

@@ -33,7 +33,7 @@ Start-Transcript -Path "C:\temp\DeployCertHA.log"
 $ServerObj = Get-WmiObject -Namespace "root\cimv2" -Class "Win32_ComputerSystem"
 $ServerName = $ServerObj.DNSHostName
 $DomainName = $ServerObj.Domain
-$ServerFqdn = $ServerName + "." + $DomainName
+$ServerFQDN = $ServerName + "." + $DomainName
 $CertPasswd = ConvertTo-SecureString -String $Passwd -Force -AsPlainText
 $AzureSQLUserID = $ProjectName
 $AzureSQLPasswd = $Passwd
@@ -151,10 +151,10 @@ If ($ServerName -eq $MainBrokerServer) {
     If (-Not (Get-RDCertificate -Role RDGateway).IssuedTo) {
         RequestCert $WebGatewayFqdn
         RequestCert $BrokerFqdn
-        Set-RDCertificate -Role RDWebAccess -ImportPath $CertWebGatewayPath -Password $CertPasswd -ConnectionBroker $ServerFqdn -Force
-        Set-RDCertificate -Role RDGateway -ImportPath $CertWebGatewayPath -Password $CertPasswd -ConnectionBroker $ServerFqdn -Force
-        Set-RDCertificate -Role RDRedirector -ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $ServerFqdn -Force
-        Set-RDCertificate -Role RDPublishing -ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $ServerFqdn -Force
+        Set-RDCertificate -Role RDWebAccess -ImportPath $CertWebGatewayPath -Password $CertPasswd -ConnectionBroker $ServerFQDN -Force
+        Set-RDCertificate -Role RDGateway -ImportPath $CertWebGatewayPath -Password $CertPasswd -ConnectionBroker $ServerFQDN -Force
+        Set-RDCertificate -Role RDRedirector -ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $ServerFQDN -Force
+        Set-RDCertificate -Role RDPublishing -ImportPath $CertBrokerPath -Password $CertPasswd -ConnectionBroker $ServerFQDN -Force
     }
     #End of cert request
 
@@ -175,7 +175,29 @@ Else {
     #If not the first broker, just install SQL OBDC driver and join the farm
     InstallSQLClient
     If ($?) {
-        Add-RDServer -Role "RDS-CONNECTION-BROKER" -ConnectionBroker (Get-RDConnectionBrokerHighAvailability).ActiveManagementServer -Server $ServerFqdn    
+        $MainBrokerFQDN = $MainBrokerServer + "." + $DomainName
+
+        #As we're executing via SYSTEM, make sure the broker is able to manage servers
+        Invoke-Command -ComputerName $MainBrokerServer -Credential $DomainCreds -ScriptBlock {
+            Param($DomainName,$BrokerName)
+            Add-LocalGroupMember -Group "Administrators" -Member "$($DomainName)\$($BrokerName)$"
+        } -ArgumentList $DomainName, $ServerName
+
+        #First broker HA deployment might be still running in parallel, wait for HA.
+        While(-Not (Get-RDConnectionBrokerHighAvailability -ConnectionBroker $MainBrokerFQDN)) {
+            Write-Host "Waiting 30 seconds for RDS Deployment..."
+            Start-Sleep -Seconds 30
+        }
+
+        Get-RDServer -ConnectionBroker $MainBrokerFQDN | ForEach-Object {
+            Invoke-Command -ComputerName $_.Server -Credential $DomainCreds -ScriptBlock {
+                Param($DomainName,$BrokerName)
+                Add-LocalGroupMember -Group "Administrators" -Member "$($DomainName)\$($BrokerName)$" -ErrorAction SilentlyContinue
+            } -ArgumentList $DomainName, $ServerName
+        }
+
+        #RDS HA Deployment is available, adding to RDS Broker farm.
+        Add-RDServer -Role "RDS-CONNECTION-BROKER" -ConnectionBroker $MainBrokerFQDN -Server $ServerFQDN        
     }
 }
 

@@ -465,6 +465,12 @@ Configuration RDSDeployment
             Name = "RSAT-AD-PowerShell"
         }
 
+        WindowsFeature RDS-Connection-Broker
+        {
+            Ensure = "Present"
+            Name = "RDS-Connection-Broker"
+        }
+
         TimeZone SetTimeZone
         {
             IsSingleInstance = 'Yes'
