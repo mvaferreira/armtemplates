@@ -198,8 +198,7 @@
         "subNetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets',variables('vNetName'),concat(parameters('projectName'),'main'))]",
         "sqlServerName": "sqlsrv",
         "rdsDBName": "rdsdb",
-        "certScriptName": "RequestCertificate.ps1",
-        "brokerHAScriptName": "ConfigureBrokerHA.ps1"
+        "ScriptName": "DeployCertHA.ps1"
     },
     "resources": [
         { // Storage Account
@@ -646,26 +645,23 @@
             "apiVersion": "2014-04-01",
             "location": "[resourceGroup().location]",
             "condition": "[parameters('createSqlServerAndDB')]",
-            "tags": {
-                "displayName": "[concat(parameters('projectName'),'sqlsrv')]"
-            },
             "properties": {
                 "administratorLogin": "[parameters('adminUser')]",
                 "administratorLoginPassword": "[parameters('adminPasswd')]"
             },
             "resources": [
                 {
-                    "type": "firewallRules",
-                    "apiVersion": "2014-04-01",
+                    "type": "Microsoft.Sql/servers/virtualNetworkRules",
+                    "apiVersion": "2015-05-01-preview",
                     "dependsOn": [
                         "[resourceId('Microsoft.Sql/servers', concat(parameters('projectName'),'sqlsrv'))]"
                     ],
                     "condition": "[parameters('createSqlServerAndDB')]",
                     "location": "[resourceGroup().location]",
-                    "name": "AllowVNetIPs",
+                    "name": "[concat(parameters('projectName'),'sqlsrv','/AllowVNetIPs')]",
                     "properties": {
-                        "startIpAddress": "[concat(parameters('vNetPrefix'),'.0.0')]",
-                        "endIpAddress": "[concat(parameters('vNetPrefix'),'.255.255')]"
+                        "virtualNetworkSubnetId": "[concat(parameters('projectName'),'vnet', '/subnets/mfrdsmain')]",
+                        "ignoreMissingVnetServiceEndpoint": false
                     }
                 }
             ]
@@ -783,17 +779,14 @@
                     "dscLocation": {
                         "value": "[parameters('_artifactsLocation')]"
                     },
-                    "certScriptName": {
-                        "value": "[variables('certScriptName')]"
+                    "ScriptName": {
+                        "value": "[variables('ScriptName')]"
                     },
                     "requestCert": {
                         "value": "[parameters('CreateDNSEntry')]"
                     },
                     "createSqlServerAndDB": {
                         "value": "[parameters('createSqlServerAndDB')]"
-                    },
-                    "brokerHAScriptName": {
-                        "value": "[variables('brokerHAScriptName')]"
                     },
                     "sqlServerName": {
                         "value": "[variables('sqlServerName')]"
@@ -887,7 +880,7 @@
                         "dscLocation": {
                             "type": "string"
                         },
-                        "certScriptName": {
+                        "ScriptName": {
                             "type": "string"
                         },
                         "requestCert": {
@@ -895,9 +888,6 @@
                         },
                         "createSqlServerAndDB": {
                             "type": "bool"
-                        },
-                        "brokerHAScriptName": {
-                            "type": "string"
                         },
                         "sqlServerName": {
                             "type": "string"
@@ -910,8 +900,7 @@
                         }
                     },
                     "variables": {
-                        "certScriptPath": "[uri(parameters('dscLocation'),parameters('certScriptName'))]",
-                        "brokerScriptPath": "[uri(parameters('dscLocation'),parameters('brokerHAScriptName'))]",
+                        "ScriptPath": "[uri(parameters('dscLocation'),parameters('ScriptName'))]",
                         "empty": [],
                         "intlbPool": [
                             {
@@ -1080,7 +1069,7 @@
                                 {
                                     "type": "Microsoft.Compute/virtualMachines/extensions",
                                     "apiVersion": "2019-12-01",
-                                    "name": "[concat(parameters('vmName'),copyIndex(1),'/certpwshext')]",
+                                    "name": "[concat(parameters('vmName'),copyIndex(1),'/pwshext')]",
                                     "location": "[resourceGroup().location]",
                                     "condition": "[and(contains(parameters('vmName'),'cb'),equals(copyIndex(1),1),parameters('requestCert'))]",
                                     "dependsOn": [
@@ -1094,36 +1083,11 @@
                                         "autoUpgradeMinorVersion": true,
                                         "settings": {
                                             "fileUris": [
-                                                "[variables('certScriptPath')]"
+                                                "[variables('ScriptPath')]"
                                             ]
                                         },
                                         "protectedSettings": {
-                                            "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('certScriptName'),' -ProjectName ', parameters('projectName'),' -WebGatewayFqdn ',parameters('ExternalFqdn'),' -BrokerFqdn ',concat('broker.',parameters('ExternalDnsDomain')),' -WebGatewayServer ',parameters('WebAccessServer'),' -Passwd ',parameters('adminPasswd'))]"
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "Microsoft.Compute/virtualMachines/extensions",
-                                    "apiVersion": "2019-12-01",
-                                    "name": "[concat(parameters('vmName'),copyIndex(1),'/brkrhapwshext')]",
-                                    "location": "[resourceGroup().location]",
-                                    "condition": "[and(contains(parameters('vmName'),'cb'),parameters('requestCert'),parameters('createSqlServerAndDB'))]",
-                                    "dependsOn": [
-                                        "[resourceId('Microsoft.Compute/virtualMachines',concat(parameters('vmName'),copyIndex(1)))]",
-                                        "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('vmName'),copyIndex(1)),'dscext')]"
-                                    ],
-                                    "properties": {
-                                        "publisher": "Microsoft.Compute",
-                                        "type": "CustomScriptExtension",
-                                        "typeHandlerVersion": "1.10",
-                                        "autoUpgradeMinorVersion": true,
-                                        "settings": {
-                                            "fileUris": [
-                                                "[variables('brokerScriptPath')]"
-                                            ]
-                                        },
-                                        "protectedSettings": {
-                                            "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('brokerHAScriptName'),' -ConnectionBroker ',concat(parameters('ConnectionBroker'),'.',parameters('adDomainName')),' -AzureSQLFQDN ',concat(parameters('projectName'),parameters('sqlServerName'),'.database.windows.net'),' -AzureSQLDBName ',parameters('rdsDBName'),' -AzureSQLUserID ',parameters('projectName'),' -AzureSQLPasswd ',parameters('adminPasswd'),' -BrokerFQDN ',concat('broker.',parameters('ExternalDnsDomain')))]"
+                                            "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('ScriptName'),' -ProjectName ',parameters('projectName'),' -MainBrokerServer ',parameters('ConnectionBroker'),' -BrokerFqdn ',concat('broker.',parameters('ExternalDnsDomain')),' -WebGatewayServer ',parameters('WebAccessServer'),' -WebGatewayFqdn ',parameters('ExternalFqdn'),' -AzureSQLFQDN ',concat(parameters('projectName'),parameters('sqlServerName'),'.database.windows.net'),' -AzureSQLDBName ',parameters('rdsDBName'),' -Passwd ',parameters('adminPasswd'))]"
                                         }
                                     }
                                 }                                
