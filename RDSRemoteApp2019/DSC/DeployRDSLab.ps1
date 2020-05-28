@@ -110,13 +110,30 @@
             DependsOn = @("[WindowsFeature]DNS", "[xADDomain]RootDomain")
         }
 
-        xDnsServerADZone AddExternalZone
+        Script AddExternalZone
         {
-            Name = $ExternalDnsDomain
-            DynamicUpdate = "Secure"
-            ReplicationScope = "Forest"
-            ComputerName = "$($env:COMPUTERNAME).$($DomainName)"
-            Ensure = "Present"
+            Import-Module DnsServer
+
+            SetScript = {
+                Add-DnsServerPrimaryZone -Name $ExternalDnsDomain `
+                    -ReplicationScope "Forest" `
+                    -DynamicUpdate "Secure"
+            }
+
+            TestScript = {
+                If (Get-DnsServerZone -Name $ExternalDnsDomain) {
+                    Return $True
+                } Else {
+                    Return $False
+                }
+            }
+
+            GetScript = {
+                @{
+                    Result = Get-DnsServerZone -Name $ExternalDnsDomain
+                }
+            }
+
             DependsOn = "[xDnsServerForwarder]SetForwarders"
         }
 
@@ -127,7 +144,7 @@
             Zone = $ExternalDnsDomain
             Type = "ARecord"
             Ensure = "Present"
-            DependsOn = "[xDnsServerADZone]AddExternalZone"
+            DependsOn = "[Script]AddExternalZone"
         }
 
         xDnsRecord AddIntLBWebGWIP
@@ -137,7 +154,7 @@
             Zone = $ExternalDnsDomain
             Type = "ARecord"
             Ensure = "Present"
-            DependsOn = "[xDnsServerADZone]AddExternalZone"
+            DependsOn = "[Script]AddExternalZone"
         }
         
         PendingReboot RebootAfterInstallingAD
