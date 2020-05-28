@@ -953,18 +953,18 @@
                             {
                                 "name": "WebAccessServers",
                                 "count": "[parameters('WebAccessServerCount')]",
-                                "input": "[concat(parameters('WebAccessServerName'),copyIndex(1),'.',parameters('adDomainName'))]"
+                                "input": "[concat(parameters('WebAccessServerName'),copyIndex('WebAccessServers',1),'.',parameters('adDomainName'))]"
                             },
                             {
                                 "name": "SessionHosts",
                                 "count": "[parameters('SessionHostCount')]",
-                                "input": "[concat(parameters('SessionHostName'),copyIndex(1),'.',parameters('adDomainName'))]"
+                                "input": "[concat(parameters('SessionHostName'),copyIndex('SessionHosts',1),'.',parameters('adDomainName'))]"
                             },
                             {
                                 "name": "LicenseServers",
                                 "count": "[parameters('LicenseServerCount')]",
-                                "input": "[concat(parameters('LicenseServerName'),copyIndex(1),'.',parameters('adDomainName'))]"
-                            }                            
+                                "input": "[concat(parameters('LicenseServerName'),copyIndex('LicenseServers',1),'.',parameters('adDomainName'))]"
+                            }
                         ]
                     },
                     "resources": [
@@ -1146,7 +1146,7 @@
                             "copy": {
                                 "name": "[concat(parameters('vmName'),'vmcopy')]",
                                 "count": "[parameters('loopCount')]"                                
-                            }                
+                            }               
                         } // Virtual Machines
                     ]
                 }

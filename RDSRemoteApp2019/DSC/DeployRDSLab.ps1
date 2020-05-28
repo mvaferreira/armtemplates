@@ -549,42 +549,52 @@ Configuration RDSDeployment
             xRDSessionDeployment Deployment
             {
                 ConnectionBroker = $MainConnectionBroker
-                WebAccessServer = $WebAccessServers
-                SessionHost = $SessionHosts
+                WebAccessServer = $WebAccessServers[0]
+                SessionHost = $SessionHosts[0]
                 PsDscRunAsCredential = $DomainCreds
                 DependsOn = "[xComputer]DomainJoin"
             }
 
-            xRDServer AddLicenseServer
-            {
-                Role = 'RDS-Licensing'
-                Server = $LicenseServers
-                PsDscRunAsCredential = $DomainCreds
-                DependsOn = "[xRDSessionDeployment]Deployment"
+            $I = 0
+            ForEach($LicenseServer In $LicenseServers) {
+                $I++
+                $RDServer = "AddLicenseServer" + $I
+                $LSConfig = "LicenseConfiguration" + $I
+
+                xRDServer $RDServer
+                {
+                    Role = 'RDS-Licensing'
+                    Server = $LicenseServer
+                    PsDscRunAsCredential = $DomainCreds
+                    DependsOn = "[xRDSessionDeployment]Deployment"
+                }
+                
+                xRDLicenseConfiguration $LSConfig
+                {
+                    ConnectionBroker = $MainConnectionBroker
+                    LicenseServer = $LicenseServer
+                    LicenseMode = 'PerUser'
+                    PsDscRunAsCredential = $DomainCreds
+                    DependsOn = "[xRDServer]AddLicenseServer"
+                }
             }
 
-            xRDLicenseConfiguration LicenseConfiguration
-            {
-                ConnectionBroker = $MainConnectionBroker
-                LicenseServer = $LicenseServers
-                LicenseMode = 'PerUser'
-                PsDscRunAsCredential = $DomainCreds
-                DependsOn = "[xRDServer]AddLicenseServer"
-            }
-
+            #
             xRDServer AddGatewayServer
             {
                 Role = 'RDS-Gateway'
-                Server = $WebAccessServers
+                Server = $WebAccessServers[0]
                 GatewayExternalFqdn = $ExternalFqdn
                 PsDscRunAsCredential = $DomainCreds
                 DependsOn = "[xRDLicenseConfiguration]LicenseConfiguration"
             }
+            #
 
+            #
             xRDGatewayConfiguration GatewayConfiguration
             {
                 ConnectionBroker = $MainConnectionBroker
-                GatewayServer = $WebAccessServers
+                GatewayServer = $WebAccessServers[0]
                 ExternalFqdn = $ExternalFqdn
                 GatewayMode = 'Custom'
                 LogonMethod = 'Password'
@@ -593,13 +603,14 @@ Configuration RDSDeployment
                 PsDscRunAsCredential = $DomainCreds
                 DependsOn = "[xRDServer]AddGatewayServer"
             }
+            #
             
             xRDSessionCollection Collection
             {
                 ConnectionBroker = $MainConnectionBroker
                 CollectionName = $CollectionName
                 CollectionDescription = $CollectionDescription
-                SessionHost = $SessionHosts
+                SessionHost = $SessionHosts[0]
                 PsDscRunAsCredential = $DomainCreds
                 DependsOn = "[xRDGatewayConfiguration]GatewayConfiguration"
             }
