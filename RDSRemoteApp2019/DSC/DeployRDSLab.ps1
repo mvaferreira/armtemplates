@@ -112,8 +112,6 @@
 
         Script AddExternalZone
         {
-            Import-Module DnsServer
-
             SetScript = {
                 Add-DnsServerPrimaryZone -Name $ExternalDnsDomain `
                     -ReplicationScope "Forest" `
