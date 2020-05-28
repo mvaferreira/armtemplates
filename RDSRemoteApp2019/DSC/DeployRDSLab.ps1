@@ -119,7 +119,7 @@
             }
 
             TestScript = {
-                If (Get-DnsServerZone -Name $Using:ExternalDnsDomain) {
+                If (Get-DnsServerZone -Name $Using:ExternalDnsDomain -ErrorAction SilentlyContinue) {
                     Return $True
                 } Else {
                     Return $False
@@ -128,7 +128,7 @@
 
             GetScript = {
                 @{
-                    Result = Get-DnsServerZone -Name $Using:ExternalDnsDomain
+                    Result = Get-DnsServerZone -Name $Using:ExternalDnsDomain -ErrorAction SilentlyContinue
                 }
             }
 
