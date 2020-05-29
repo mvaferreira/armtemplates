@@ -84,7 +84,7 @@ Function RequestCert([string]$Fqdn) {
     $auth = Get-PAOrder | Get-PAAuthorizations | Where-Object { $_.HTTP01Status -eq "Pending" }
     $AcmeBody = Get-KeyAuthorization $auth.HTTP01Token (Get-PAAccount)
 
-    Invoke-Command -ComputerName $WebGatewayServers[0] -Credential $DomainCreds -ScriptBlock {
+    Invoke-Command -ComputerName $WebGatewayServers -Credential $DomainCreds -ScriptBlock {
         Param($auth, $AcmeBody, $BrokerName, $DomainName)
         $AcmePath = "C:\Inetpub\wwwroot\.well-known\acme-challenge"
         New-Item -ItemType Directory -Path $AcmePath -Force
@@ -99,7 +99,7 @@ Function RequestCert([string]$Fqdn) {
         Write-Host "Waiting for validation. Sleeping 30 seconds..."
         Start-Sleep -Seconds 30
         $Retries++
-    } While (((Get-PAOrder | Get-PAAuthorizations).HTTP01Status -ne "valid") -or ($Retries -ne $CertMaxRetries))
+    } While (((Get-PAOrder | Get-PAAuthorizations).HTTP01Status -ne "valid") -And ($Retries -ne $CertMaxRetries))
 
     If ((Get-PAOrder | Get-PAAuthorizations).HTTP01Status -ne "valid"){
         [Environment]::Exit(-1)
@@ -201,7 +201,7 @@ If ($ServerName -eq $MainConnectionBroker) {
         } -ArgumentList $DomainName, $ServerName
 
         If (-Not (Get-RDServer -Role "RDS-GATEWAY" -ConnectionBroker $ServerFQDN | Where-Object {$_.Server -match $NewServer})) {
-            Add-RDServer -Role "RDS-GATEWAY" -ConnectionBroker $ServerFQDN -Server $NewServer
+            Add-RDServer -Role "RDS-GATEWAY" -ConnectionBroker $ServerFQDN -Server $NewServer -GatewayExternalFqdn $WebGatewayFqdn
         }
     }
 
