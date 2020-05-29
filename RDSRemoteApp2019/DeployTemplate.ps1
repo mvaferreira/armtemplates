@@ -12,8 +12,8 @@ If (-Not (Get-AzResourceGroup -Name $RG -ErrorAction SilentlyContinue)) {
 }
 
 # Change the following paths
-$templateFile = ".\azuredeploy.json"
-$parameterFile = ".\azuredeploy.parameters.lab.json"
+$templateFile = "C:\Marcus\ARMTemplates\RDSRemoteApp2019\azuredeploy.json"
+$parameterFile = "C:\Marcus\ARMTemplates\RDSRemoteApp2019\azuredeploy.parameters.lab.json"
 
 Write-host "[$(Get-Date)] Deployment started..." -ForegroundColor Green
 

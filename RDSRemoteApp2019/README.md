@@ -6,6 +6,10 @@ It requests valid public certificates for the deployment automatically from Let'
 
 Even though multiple services are deployed, it is not using Azure best practices, since this is a LAB environment. Also, it does not integrate into existing resources, except for the Azure Public DNS Zone. Does not integrate with existing Active Directory domain and no networking connectivity with onpremises.
 
+**WVD is the production ready environment for Remote Desktop Services** -> [Windows Virtual Desktop](https://azure.microsoft.com/en-us/services/virtual-desktop/)
+
+## Configuration
+
 All of VMs are configured as Azure Spot VMs (deallocate) and Azure Hybrid Benefit. Make sure you have licenses onpremises for Windows Server 2019 Datacenter, otherwise, change VM configuration.
 
 By default, this will deploy 2 VMs of this type:
