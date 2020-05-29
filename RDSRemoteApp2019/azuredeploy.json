@@ -1137,7 +1137,7 @@
                                             ]
                                         },
                                         "protectedSettings": {
-                                            "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('ScriptName'),' -ProjectName ',parameters('projectName'),' -MainConnectionBroker ',parameters('MainConnectionBroker'),' -BrokerFqdn ',concat('broker.',parameters('ExternalDnsDomain')),' -WebGatewayServers ',variables('WebAccessServers'),' -SessionHosts ',variables('SessionHosts'),' -LicenseServers ',variables('LicenseServers'),' -WebGatewayFqdn ',parameters('ExternalFqdn'),' -AzureSQLFQDN ',concat(parameters('projectName'),parameters('sqlServerName'),'.database.windows.net'),' -AzureSQLDBName ',parameters('rdsDBName'),' -Passwd ',parameters('adminPasswd'))]"
+                                            "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('ScriptName'),' -ProjectName ',parameters('projectName'),' -MainConnectionBroker ',parameters('MainConnectionBroker'),' -BrokerFqdn ',concat('broker.',parameters('ExternalDnsDomain')),' -WebGatewayFqdn ',parameters('ExternalFqdn'),' -AzureSQLFQDN ',concat(parameters('projectName'),parameters('sqlServerName'),'.database.windows.net'),' -AzureSQLDBName ',parameters('rdsDBName'),' -Passwd ',parameters('adminPasswd'))]"
                                         }
                                     }
                                 }                                

@@ -8,6 +8,7 @@ Param (
     [Parameter(Mandatory)]
     [string]$BrokerFqdn,
 
+    <#
     [Parameter(Mandatory)]
     [array]$WebGatewayServers,
 
@@ -16,6 +17,7 @@ Param (
 
     [Parameter(Mandatory)]
     [array]$LicenseServers,
+    #>
 
     [Parameter(Mandatory)]
     [string]$WebGatewayFqdn,
@@ -29,6 +31,10 @@ Param (
     [Parameter(Mandatory)]
     [string]$Passwd
 )
+
+$WebGatewayServers = @('mfrdswg1.contoso.com','mfrdswg2.contoso.com')
+$SessionHosts = @('mfrdssh1.contoso.com','mfrdssh2.contoso.com')
+$LicenseServers = @('mfrdslf1.contoso.com','mfrdslf2.contoso.com')
 
 If (-Not (Test-Path "C:\temp")) {
     New-Item -ItemType Directory -Path "C:\temp" -Force
@@ -207,7 +213,7 @@ Else {
     #If not the first broker, just install SQL OBDC driver and join the farm
     InstallSQLClient
     If ($?) {
-        $MainBrokerFQDN = $MainConnectionBroker + "." + $DomainName
+        $MainBrokerFQDN = $($MainConnectionBroker + "." + $DomainName)
 
         #As we're executing via SYSTEM, make sure the broker is able to manage servers
         Invoke-Command -ComputerName $MainConnectionBroker -Credential $DomainCreds -ScriptBlock {
