@@ -8,17 +8,6 @@ Param (
     [Parameter(Mandatory)]
     [string]$BrokerFqdn,
 
-    <#
-    [Parameter(Mandatory)]
-    [array]$WebGatewayServers,
-
-    [Parameter(Mandatory)]
-    [array]$SessionHosts,
-
-    [Parameter(Mandatory)]
-    [array]$LicenseServers,
-    #>
-
     [Parameter(Mandatory)]
     [string]$WebGatewayFqdn,
 
@@ -29,12 +18,26 @@ Param (
     [string]$AzureSQLDBName,
 
     [Parameter(Mandatory)]
-    [string]$Passwd
-)
+    [string]$Passwd,
 
-$WebGatewayServers = @('mfrdswg1.contoso.com','mfrdswg2.contoso.com')
-$SessionHosts = @('mfrdssh1.contoso.com','mfrdssh2.contoso.com')
-$LicenseServers = @('mfrdslf1.contoso.com','mfrdslf2.contoso.com')
+    [Parameter(Mandatory)]
+    [string]$WebAccessServerName,
+
+    [Parameter(Mandatory)]
+    [int]$WebAccessServerCount,
+
+    [Parameter(Mandatory)]
+    [string]$SessionHostName,
+
+    [Parameter(Mandatory)]
+    [int]$SessionHostCount,
+
+    [Parameter(Mandatory)]
+    [string]$LicenseServerName,
+
+    [Parameter(Mandatory)]
+    [int]$LicenseServerCount   
+)
 
 If (-Not (Test-Path "C:\temp")) {
     New-Item -ItemType Directory -Path "C:\temp" -Force
@@ -57,7 +60,24 @@ Install-Module -Name Posh-ACME -Scope AllUsers -Force
 Import-Module Posh-ACME
 Import-Module RemoteDesktop
 
+$WebGatewayServers = @()
+For($I=1;$I -le $WebAccessServerCount;$I++){
+    $WebGatewayServers += $($WebAccessServerName + $I + "." + $DomainName)
+}
+
+$SessionHosts = @()
+For($I=1;$I -le $SessionHostCount;$I++){
+    $SessionHosts += $($SessionHostName + $I + "." + $DomainName)
+}
+
+$LicenseServers = @()
+For($I=1;$I -le $LicenseServerCount;$I++){
+    $LicenseServers += $($LicenseServerName + $I + "." + $DomainName)
+}
+
 Function RequestCert([string]$Fqdn) {
+    $CertMaxRetries = 10
+
     Set-PAServer LE_PROD
     New-PAAccount -AcceptTOS -Contact "$($ProjectName)@$($Fqdn)" -Force
     New-PAOrder $Fqdn
@@ -74,10 +94,16 @@ Function RequestCert([string]$Fqdn) {
 
     $auth.HTTP01Url | Send-ChallengeAck
 
+    $Retries = 1
     Do {
         Write-Host "Waiting for validation. Sleeping 30 seconds..."
         Start-Sleep -Seconds 30
-    } While ((Get-PAOrder | Get-PAAuthorizations).HTTP01Status -ne "valid")
+        $Retries++
+    } While (((Get-PAOrder | Get-PAAuthorizations).HTTP01Status -ne "valid") -or ($Retries -ne $CertMaxRetries))
+
+    If ((Get-PAOrder | Get-PAAuthorizations).HTTP01Status -ne "valid"){
+        [Environment]::Exit(-1)
+    }
 
     New-PACertificate $Fqdn -Install
     $Thumbprint = (Get-PACertificate $Fqdn).Thumbprint
@@ -158,24 +184,44 @@ Function InstallSQLClient() {
 If ($ServerName -eq $MainConnectionBroker) {
     #Add remaining servers
     ForEach($NewServer In $WebGatewayServers) {
+        Invoke-Command -ComputerName $NewServer -Credential $DomainCreds -ScriptBlock {
+            Param($DomainName,$BrokerName)
+            Add-LocalGroupMember -Group "Administrators" -Member "$($DomainName)\$($BrokerName)$" -ErrorAction SilentlyContinue
+        } -ArgumentList $DomainName, $ServerName
+
         If (-Not (Get-RDServer -Role "RDS-WEB-ACCESS" -ConnectionBroker $ServerFQDN | Where-Object {$_.Server -match $NewServer})) {
             Add-RDServer -Role "RDS-WEB-ACCESS" -ConnectionBroker $ServerFQDN -Server $NewServer
         }
     }
 
     ForEach($NewServer In $WebGatewayServers) {
+        Invoke-Command -ComputerName $NewServer -Credential $DomainCreds -ScriptBlock {
+            Param($DomainName,$BrokerName)
+            Add-LocalGroupMember -Group "Administrators" -Member "$($DomainName)\$($BrokerName)$" -ErrorAction SilentlyContinue
+        } -ArgumentList $DomainName, $ServerName
+
         If (-Not (Get-RDServer -Role "RDS-GATEWAY" -ConnectionBroker $ServerFQDN | Where-Object {$_.Server -match $NewServer})) {
             Add-RDServer -Role "RDS-GATEWAY" -ConnectionBroker $ServerFQDN -Server $NewServer
         }
     }
 
     ForEach($NewServer In $SessionHosts) {
+        Invoke-Command -ComputerName $NewServer -Credential $DomainCreds -ScriptBlock {
+            Param($DomainName,$BrokerName)
+            Add-LocalGroupMember -Group "Administrators" -Member "$($DomainName)\$($BrokerName)$" -ErrorAction SilentlyContinue
+        } -ArgumentList $DomainName, $ServerName
+
         If (-Not (Get-RDServer -Role "RDS-RD-SERVER" -ConnectionBroker $ServerFQDN | Where-Object {$_.Server -match $NewServer})) {
             Add-RDServer -Role "RDS-RD-SERVER" -ConnectionBroker $ServerFQDN -Server $NewServer
         }
     }
     
     ForEach($NewServer In $LicenseServers) {
+        Invoke-Command -ComputerName $NewServer -Credential $DomainCreds -ScriptBlock {
+            Param($DomainName,$BrokerName)
+            Add-LocalGroupMember -Group "Administrators" -Member "$($DomainName)\$($BrokerName)$" -ErrorAction SilentlyContinue
+        } -ArgumentList $DomainName, $ServerName
+
         If (-Not (Get-RDServer -Role "RDS-LICENSING" -ConnectionBroker $ServerFQDN | Where-Object {$_.Server -match $NewServer})) {
             Add-RDServer -Role "RDS-LICENSING" -ConnectionBroker $ServerFQDN -Server $NewServer
         }
