@@ -1,4 +1,4 @@
-# armtemplates
+# ARM Templates for Remote Desktop Services
 
 This ARM Template sample code will deploy a lab for Remote Desktop Services for Session Deployment. The goal is to deploy a fully redundant, highly available solution for Remote Desktop Services, using Windows Server 2019.
 
