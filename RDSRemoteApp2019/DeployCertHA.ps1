@@ -242,6 +242,16 @@ If ($ServerName -eq $MainConnectionBroker) {
     }
     #End of cert request
 
+    #Redirects to HTTPS
+    $RedirectPage = "https://$($WebGatewayFqdn)/RDWeb"
+
+    Invoke-Command -ComputerName $WebGatewayServers -Credential $DomainCreds -ScriptBlock {
+        Param($RedirectPage)
+        Import-Module WebAdministration
+        Set-WebConfiguration System.WebServer/HttpRedirect "IIS:\sites\Default Web Site" -Value @{Enabled="True";Destination="$RedirectPage";ExactDestination="True";HttpResponseStatus="Found"}
+    } -ArgumentList $RedirectPage
+    #End of https redirect
+
     #Configure broker in HA
     InstallSQLClient
     If ($?) {

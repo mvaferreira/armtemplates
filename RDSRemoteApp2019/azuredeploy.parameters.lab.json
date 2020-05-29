@@ -15,7 +15,7 @@
             "value": "rgdns"
         },
         "adminPasswd": {
-            "value": "P@ssword" //Enter your password here.
+            "value": "GEN-PASSWORD" //Enter your password here.
         }
     }
 }

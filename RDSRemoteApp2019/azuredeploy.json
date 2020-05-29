@@ -948,24 +948,7 @@
                                 "id": "[concat(resourceId('Microsoft.Network/loadBalancers',parameters('pubLbName')),'/backendAddressPools/',parameters('pubLbBackEndPool'))]"
                             }                            
                         ],
-                        "intlbRef": "[resourceId(resourceGroup().name,'Microsoft.Network/loadBalancers',parameters('intLbName'))]",
-                        "copy": [
-                            {
-                                "name": "WebAccessServers",
-                                "count": "[parameters('WebAccessServerCount')]",
-                                "input": "[concat(parameters('WebAccessServerName'),copyIndex('WebAccessServers',1),'.',parameters('adDomainName'))]"
-                            },
-                            {
-                                "name": "SessionHosts",
-                                "count": "[parameters('SessionHostCount')]",
-                                "input": "[concat(parameters('SessionHostName'),copyIndex('SessionHosts',1),'.',parameters('adDomainName'))]"
-                            },
-                            {
-                                "name": "LicenseServers",
-                                "count": "[parameters('LicenseServerCount')]",
-                                "input": "[concat(parameters('LicenseServerName'),copyIndex('LicenseServers',1),'.',parameters('adDomainName'))]"
-                            }
-                        ]
+                        "intlbRef": "[resourceId(resourceGroup().name,'Microsoft.Network/loadBalancers',parameters('intLbName'))]"
                     },
                     "resources": [
                         { // Public IP Addresses
