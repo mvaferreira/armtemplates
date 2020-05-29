@@ -36,14 +36,16 @@ Param (
     [string]$LicenseServerName,
 
     [Parameter(Mandatory)]
-    [int]$LicenseServerCount   
+    [int]$LicenseServerCount,
+
+    [bool]$EnableDebug = $False
 )
 
 If (-Not (Test-Path "C:\temp")) {
     New-Item -ItemType Directory -Path "C:\temp" -Force
 }
 
-Start-Transcript -Path "C:\temp\DeployCertHA.log"
+If ($EnableDebug) { Start-Transcript -Path "C:\temp\DeployCertHA.log" }
 
 $ServerObj = Get-WmiObject -Namespace "root\cimv2" -Class "Win32_ComputerSystem"
 $ServerName = $ServerObj.DNSHostName
@@ -305,4 +307,4 @@ Else {
     }
 }
 
-Stop-Transcript
+If ($EnableDebug) { Stop-Transcript }

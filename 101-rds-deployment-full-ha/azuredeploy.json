@@ -4,7 +4,7 @@
     "parameters": {
         "projectName": {
             "type": "string",
-            "defaultValue": "rds",
+            "defaultValue": "GEN-UNIQUE",
             "metadata": {
                 "description": "Define the project name or prefix for all objects."
             }
@@ -18,9 +18,9 @@
         },
         "DNSZone": {
             "type": "string",
-            "defaultValue": "contoso.com",
+            "defaultValue": "contosocorp.com",
             "metadata": {
-                "description": "External DNS domain zone."
+                "description": "External public DNS domain zone. NOT AD domain."
             }
         },
         "DNSZoneResourceGroup": {
@@ -30,9 +30,12 @@
                 "description": "Resource group name for external dns zone to modify, if 'CreateDNSEntry' is true."
             }
         },
-        "CreateDNSEntry": {
+        "createDNSEntry": {
             "type": "bool",
-            "defaultValue": true
+            "defaultValue": false,
+            "metadata": {
+                "description": "Do you want to create/update the DNS entries on Azure DNS domain?"
+            }
         },
         "ExternalFqdn": {
             "type": "string",
@@ -63,39 +66,42 @@
         },
         "createSqlServerAndDB": {
             "type": "bool",
-            "defaultValue": false
+            "defaultValue": false,
+            "metadata": {
+                "description": "Do you want to deploy your environment in HA? So create Azure SQL Server and DB."
+            }
         },
         "dcCount": {
             "type": "int",
-            "defaultValue": 2,
+            "defaultValue": 1,
             "metadata": {
                 "description": "How many Domain Controllers would you like to deploy?"
             }            
         },        
         "rdcbCount": {
             "type": "int",
-            "defaultValue": 2,
+            "defaultValue": 1,
             "metadata": {
                 "description": "How many RD Connection Brokers would you like to deploy?"
             }
         },
         "rdwgCount": {
             "type": "int",
-            "defaultValue": 2,
+            "defaultValue": 1,
             "metadata": {
                 "description": "How many RD Web Access/Gateways would you like to deploy?"
             }            
         },
         "rdshCount": {
             "type": "int",
-            "defaultValue": 2,
+            "defaultValue": 1,
             "metadata": {
                 "description": "How many RD Session Hosts would you like to deploy?"
             }            
         },
         "lsfsCount": {
             "type": "int",
-            "defaultValue": 2,
+            "defaultValue": 1,
             "metadata": {
                 "description": "How many License/File Servers would you like to deploy?"
             }            
@@ -103,35 +109,35 @@
         "vmProperties": {
             "type": "array",
             "defaultValue": [
-                { // Domain Controller VMs
+                {
                     "name": "[parameters('vmNames')[0]]",
                     "count": "[parameters('dcCount')]",
                     "intLbBackEndPool": "",
                     "pubLbBackEndPool": "",
                     "dscFunction": "DeployRDSLab.ps1\\CreateRootDomain"
                 },                
-                { // Remote Desktop Web/Gateway VMs
+                {
                     "name": "[parameters('vmNames')[1]]",
                     "count": "[parameters('rdwgCount')]",
                     "intLbBackEndPool": "rds-webgateways-int-pool",
                     "pubLbBackEndPool": "rds-webgateways-pub-pool",
                     "dscFunction": "DeployRDSLab.ps1\\RDWebGateway"
                 },
-                { // Remote Desktop Connection Broker VMs
+                {
                     "name": "[parameters('vmNames')[2]]",
                     "count": "[parameters('rdcbCount')]",
                     "intLbBackEndPool": "rds-brokers-int-pool",
                     "pubLbBackEndPool": "",
                     "dscFunction": "DeployRDSLab.ps1\\RDSDeployment"
                 },
-                { // Remote Desktop Session Host VMs
+                {
                     "name": "[parameters('vmNames')[3]]",
                     "count": "[parameters('rdshCount')]",
                     "intLbBackEndPool": "",
                     "pubLbBackEndPool": "",
                     "dscFunction": "DeployRDSLab.ps1\\RDSessionHost"
                 },
-                { // License Server/File Server VMs
+                {
                     "name": "[parameters('vmNames')[4]]",
                     "count": "[parameters('lsfsCount')]",
                     "intLbBackEndPool": "",
@@ -174,7 +180,7 @@
             "type": "string",
             "defaultValue": "contoso.com",
             "metadata": {
-                "description": "What is new forest/root domain name?"
+                "description": "What is the new forest/root Active Directory domain name?"
             }            
         },
         "vNetPrefix": {
@@ -200,7 +206,7 @@
         },       
         "_artifactsLocation": {
             "type": "string",
-            "defaultValue": "https://raw.githubusercontent.com/mvaferreira/armtemplates/master/RDSRemoteApp2019/",
+            "defaultValue": "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/101-rds-deployment-full-ha/",
             "metadata": {
                 "description": "Location of all scripts and DSC resources for RDS deployment."
             }
@@ -213,10 +219,11 @@
         "subNetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets',variables('vNetName'),concat(parameters('projectName'),'main'))]",
         "sqlServerName": "sqlsrv",
         "rdsDBName": "rdsdb",
-        "ScriptName": "DeployCertHA.ps1"
+        "dscScriptName": "deployrdslab.zip",
+        "scriptName": "deploycertha.ps1"
     },
     "resources": [
-        { // Storage Account
+        {
             "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2019-06-01",
             "location": "[resourceGroup().location]",
@@ -226,8 +233,8 @@
                 "name": "[parameters('storageSkuType')]",
                 "tier": "Standard"
             }
-        }, // Storage Account
-        {  // Network Security Group
+        },
+        {
             "type": "Microsoft.Network/networkSecurityGroups",
             "apiVersion": "2019-12-01",
             "location": "[resourceGroup().location]",
@@ -288,8 +295,8 @@
                     }                                     
                 ]
             }
-        }, // Network Security Group
-        { // Virtual Network
+        },
+        {
             "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2019-12-01",
             "location": "[resourceGroup().location]",
@@ -315,8 +322,8 @@
                     }
                 ]
             }
-        }, // Virtual Network
-        { // Internal Load Balancer
+        },
+        {
             "type": "Microsoft.Network/loadBalancers",
             "apiVersion": "2019-12-01",
             "location": "[resourceGroup().location]",
@@ -476,8 +483,8 @@
                     }                                      
                 ]
             }
-        }, // Internal Load Balancer
-        { // Public Load Balancer PIP
+        },
+        {
             "name": "[concat(parameters('projectName'),'lbwebgwpip')]",
             "type": "Microsoft.Network/publicIPAddresses",
             "apiVersion": "2019-11-01",
@@ -494,8 +501,8 @@
                     "domainNameLabel": "[concat(parameters('projectName'),'lbwebgwpip')]"
                 }
             }
-        }, // Public Load Balancer PIP
-        { // External DNS CNAME to Public Load Balancer PIP
+        },
+        {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2019-10-01",
             "name": "[concat(parameters('projectName'),'dnsupdate')]",
@@ -553,8 +560,8 @@
                     ]
                 }                
             }    
-        }, // External DNS CNAME to Public Load Balancer PIP
-        { // Public Load Balancer
+        },
+        {
             "name": "[concat(parameters('projectName'),'publb')]",
             "type": "Microsoft.Network/loadBalancers",
             "apiVersion": "2019-11-01",
@@ -653,8 +660,8 @@
                     }                                        
                 ]
             }
-        }, // Public Load Balancer
-        { // Azure SQL Server
+        },
+        {
             "name": "[concat(parameters('projectName'),variables('sqlServerName'))]",
             "type": "Microsoft.Sql/servers",
             "apiVersion": "2019-06-01-preview",
@@ -680,8 +687,8 @@
                     }
                 }
             ]
-        }, // Azure SQL Server
-        { // Azure SQL Database
+        },
+        {
             "name": "[concat(parameters('projectName'),'sqlsrv/',variables('rdsDBName'))]",
             "type": "Microsoft.Sql/servers/databases",
             "apiVersion": "2014-04-01",
@@ -699,8 +706,8 @@
                 "maxSizeBytes": "1073741824",
                 "requestedServiceObjectiveName": "Basic"
             }
-        }, // Azure SQL Database
-        { // Multiple deployments, PIPs, NICs, VMs
+        },
+        {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2019-10-01",
             "name": "[concat(parameters('vmProperties')[copyIndex()].name,'Deployment')]",
@@ -803,8 +810,11 @@
                     "dscLocation": {
                         "value": "[parameters('_artifactsLocation')]"
                     },
-                    "ScriptName": {
-                        "value": "[variables('ScriptName')]"
+                    "dscScriptName": {
+                        "value": "[variables('dscScriptName')]"
+                    },
+                    "scriptName": {
+                        "value": "[variables('scriptName')]"
                     },
                     "requestCert": {
                         "value": "[parameters('CreateDNSEntry')]"
@@ -913,7 +923,10 @@
                         "dscLocation": {
                             "type": "string"
                         },
-                        "ScriptName": {
+                        "dscScriptName": {
+                            "type": "string"
+                        },
+                        "scriptName": {
                             "type": "string"
                         },
                         "requestCert": {
@@ -933,7 +946,7 @@
                         }
                     },
                     "variables": {
-                        "ScriptPath": "[uri(parameters('dscLocation'),parameters('ScriptName'))]",
+                        "scriptPath": "[uri(parameters('dscLocation'),concat('scripts/',parameters('scriptName')))]",
                         "empty": [],
                         "intlbPool": [
                             {
@@ -951,7 +964,7 @@
                         "intlbRef": "[resourceId(resourceGroup().name,'Microsoft.Network/loadBalancers',parameters('intLbName'))]"
                     },
                     "resources": [
-                        { // Public IP Addresses
+                        {
                             "type": "Microsoft.Network/publicIPAddresses",
                             "apiVersion": "2019-12-01",
                             "location": "[resourceGroup().location]",
@@ -969,8 +982,8 @@
                                 "name": "[concat(parameters('vmName'),'pipcopy')]",
                                 "count": "[parameters('loopCount')]"
                             }
-                        }, // Public IP Addresses
-                        { // Network Interfaces
+                        },
+                        {
                             "type": "Microsoft.Network/networkInterfaces",
                             "apiVersion": "2019-12-01",
                             "location": "[resourceGroup().location]",
@@ -1000,8 +1013,8 @@
                                 "name": "[concat(parameters('vmName'),'niccopy')]",
                                 "count": "[parameters('loopCount')]"
                             }                                                        
-                        }, // Network Interfaces
-                        { // Virtual Machines
+                        },
+                        {
                             "type": "Microsoft.Compute/virtualMachines",
                             "apiVersion": "2019-07-01",
                             "location": "[resourceGroup().location]",
@@ -1067,7 +1080,7 @@
                                         "typeHandlerVersion": "2.11",
                                         "autoUpgradeMinorVersion": true,
                                         "settings": {
-                                            "ModulesUrl": "[concat(parameters('dscLocation'),'DSC/DeployRDSLab.zip')]",
+                                            "ModulesUrl": "[concat(parameters('dscLocation'),'dsc/',parameters('dscScriptName'))]",
                                             "ConfigurationFunction": "[parameters('dscFunction')]",
                                             "Properties": {
                                                 "AdminCreds": {
@@ -1104,7 +1117,7 @@
                                     "apiVersion": "2019-12-01",
                                     "name": "[concat(parameters('vmName'),copyIndex(1),'/pwshext')]",
                                     "location": "[resourceGroup().location]",
-                                    "condition": "[and(contains(parameters('vmName'),'cb'),parameters('requestCert'))]",
+                                    "condition": "[and(contains(parameters('vmName'),'cb'),parameters('requestCert'),parameters('createSqlServerAndDB'))]",
                                     "dependsOn": [
                                         "[resourceId('Microsoft.Compute/virtualMachines',concat(parameters('vmName'),copyIndex(1)))]",
                                         "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('vmName'),copyIndex(1)),'dscext')]"
@@ -1116,11 +1129,11 @@
                                         "autoUpgradeMinorVersion": true,
                                         "settings": {
                                             "fileUris": [
-                                                "[variables('ScriptPath')]"
+                                                "[variables('scriptPath')]"
                                             ]
                                         },
                                         "protectedSettings": {
-                                            "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('ScriptName'),' -ProjectName ',parameters('projectName'),' -MainConnectionBroker ',parameters('MainConnectionBroker'),' -BrokerFqdn ',concat('broker.',parameters('ExternalDnsDomain')),' -WebGatewayFqdn ',parameters('ExternalFqdn'),' -AzureSQLFQDN ',concat(parameters('projectName'),parameters('sqlServerName'),'.database.windows.net'),' -AzureSQLDBName ',parameters('rdsDBName'),' -Passwd ',parameters('adminPasswd'),' -WebAccessServerName ',parameters('WebAccessServerName'),' -WebAccessServerCount ',parameters('WebAccessServerCount'),' -SessionHostName ',parameters('SessionHostName'),' -SessionHostCount ',parameters('SessionHostCount'),' -LicenseServerName ',parameters('LicenseServerName'),' -LicenseServerCount ',parameters('LicenseServerCount'))]"
+                                            "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File ./',parameters('scriptName'),' -ProjectName ',parameters('projectName'),' -MainConnectionBroker ',parameters('MainConnectionBroker'),' -BrokerFqdn ',concat('broker.',parameters('ExternalDnsDomain')),' -WebGatewayFqdn ',parameters('ExternalFqdn'),' -AzureSQLFQDN ',concat(parameters('projectName'),parameters('sqlServerName'),'.database.windows.net'),' -AzureSQLDBName ',parameters('rdsDBName'),' -Passwd ',parameters('adminPasswd'),' -WebAccessServerName ',parameters('WebAccessServerName'),' -WebAccessServerCount ',parameters('WebAccessServerCount'),' -SessionHostName ',parameters('SessionHostName'),' -SessionHostCount ',parameters('SessionHostCount'),' -LicenseServerName ',parameters('LicenseServerName'),' -LicenseServerCount ',parameters('LicenseServerCount'))]"
                                         }
                                     }
                                 }                                
@@ -1130,7 +1143,7 @@
                                 "name": "[concat(parameters('vmName'),'vmcopy')]",
                                 "count": "[parameters('loopCount')]"                                
                             }               
-                        } // Virtual Machines
+                        }
                     ]
                 }
             },
@@ -1138,6 +1151,6 @@
                 "name": "vmCopy",
                 "count": "[length(parameters('vmProperties'))]"
             }            
-        } // Multiple deployments, PIPs, NICs, VMs
+        }
     ]
 }
