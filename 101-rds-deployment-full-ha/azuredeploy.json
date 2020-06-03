@@ -646,6 +646,10 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2019-10-01",
             "name": "[concat(variables('vmProperties')[copyIndex()].name,'Deployment')]",
+            "copy": {
+                "name": "vmCopy",
+                "count": "[length(variables('vmProperties'))]"
+            },            
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks',concat(parameters('projectName'),'vnet'))]",
                 "[resourceId('Microsoft.Network/loadBalancers',concat(parameters('projectName'),'intlb'))]",
@@ -653,10 +657,6 @@
                 "[resourceId('Microsoft.Storage/storageAccounts',concat(parameters('projectName'),'stgdiag'))]",
                 "[resourceId('Microsoft.Sql/servers/databases',concat(parameters('projectName'),'sqlsrv'),variables('rdsDBName'))]"
             ],
-            "copy": {
-                "name": "vmCopy",
-                "count": "[length(variables('vmProperties'))]"
-            },
             "properties": {
                 "mode": "Incremental",
                 "expressionEvaluationOptions": {
@@ -940,13 +940,13 @@
                             "apiVersion": "2019-12-01",
                             "location": "[parameters('location')]",
                             "name": "[concat(parameters('vmName'),copyIndex(1),'nic1')]",
-                            "dependsOn": [
-                                "[resourceId('Microsoft.Network/publicIPAddresses',concat(parameters('vmName'),copyIndex(1),'pip'))]"
-                            ],
                             "copy": {
                                 "name": "[concat(parameters('vmName'),'niccopy')]",
                                 "count": "[parameters('loopCount')]"
-                            },                          
+                            },                            
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Network/publicIPAddresses',concat(parameters('vmName'),copyIndex(1),'pip'))]"
+                            ],                          
                             "properties": {
                                 "ipConfigurations": [
                                     {
