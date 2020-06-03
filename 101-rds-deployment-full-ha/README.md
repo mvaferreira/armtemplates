@@ -27,12 +27,11 @@ To be able to request certificates and have a highly available environment, do t
 
 1. Create two CNAME entries ("remoteapps" and "broker") in your external DNS domain registrar, pointing to the following:
 
-    <projectName>lbwebpip.<location>.cloudapp.azure.com
+    **projectName**lbwebpip.**location**.cloudapp.azure.com
     
     Example:
 
-        ```
-        Deployment parameters:
+         Deployment parameters:
             "projectName"     -> "rds"
             "location"        -> "eastus"
             "externalDnsZone" -> "contosocorp.com"
@@ -41,43 +40,42 @@ To be able to request certificates and have a highly available environment, do t
 
         "remoteapps.contosocorp.com" CNAME "rdslbwebpip.eastus.cloudapp.azure.com"
         "broker.contosocorp.com"     CNAME "rdslbwebpip.eastus.cloudapp.azure.com"
-        ```
 
     This is required by letsencrypt's validation process, which will connect via HTTP to your websites.
 
 2. Change the following parameters:
 
-Example:
+    Example:
 
-```json
-    "projectName": {
-        "value": "rds"
-    },
-    "location": {
-        "value": "eastus"
-    },
-    "externalDnsZone": {
-        "value": "contosocorp.com"
-    },
-    "deployHA": {
-        "value": true
-    },
-    "dcCount": {
-        "value": 2
-    },
-    "rdcbCount": {
-        "value": 2
-    },
-    "rdwgCount": {
-        "value": 2
-    },
-    "rdshCount": {
-        "value": 2
-    },
-    "lsfsCount": {
-        "value": 2
-    }
-```
+    ```json
+        "projectName": {
+            "value": "rds"
+        },
+        "location": {
+            "value": "eastus"
+        },
+        "externalDnsZone": {
+            "value": "contosocorp.com"
+        },
+        "deployHA": {
+            "value": true
+        },
+        "dcCount": {
+            "value": 2
+        },
+        "rdcbCount": {
+            "value": 2
+        },
+        "rdwgCount": {
+            "value": 2
+        },
+        "rdshCount": {
+            "value": 2
+        },
+        "lsfsCount": {
+            "value": 2
+        }
+    ```
 
 ## Configuration
 
