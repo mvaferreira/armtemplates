@@ -38,7 +38,7 @@ Param (
     [Parameter(Mandatory)]
     [int]$LicenseServerCount,
 
-    [bool]$EnableDebug = $False
+    [bool]$EnableDebug = $True
 )
 
 If (-Not (Test-Path "C:\temp")) {
