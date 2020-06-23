@@ -1006,8 +1006,6 @@
                                 "hardwareProfile": {
                                     "vmSize": "[parameters('vmSize')]"
                                 },
-                                "priority": "Spot",
-                                "evictionPolicy": "Deallocate",
                                 "storageProfile": {
                                     "osDisk": {
                                         "createOption": "FromImage",
