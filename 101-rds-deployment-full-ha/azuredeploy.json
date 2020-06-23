@@ -982,9 +982,6 @@
                             ],
                             "properties": {
                                 "licenseType": "Windows_Server",
-                                "billingProfile": {
-                                    "maxPrice": -1
-                                },
                                 "diagnosticsProfile": {
                                     "bootDiagnostics": {
                                         "enabled": true,
