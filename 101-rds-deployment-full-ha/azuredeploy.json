@@ -102,6 +102,13 @@
                 "description": "What is the VM size for all VMs?"
             }            
         },
+        "vmSpot": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Create Azure Spot VMs?"
+            }
+        },
         "vmStorageSkuType": {
             "type": "string",
             "defaultValue": "Standard_LRS",
@@ -681,6 +688,9 @@
                     "vmSize": {
                         "value": "[parameters('vmSize')]"
                     },
+                    "vmSpot": {
+                        "value": "[parameters('vmSpot')]"
+                    },
                     "vmStorageSkuType": {
                         "value": "[parameters('vmStorageSkuType')]"
                     },
@@ -802,6 +812,9 @@
                         },
                         "vmSize": {
                             "type": "string"
+                        },
+                        "vmSpot": {
+                            "type": "bool"
                         },
                         "vmStorageSkuType": {
                             "type": "string"
@@ -982,6 +995,11 @@
                             ],
                             "properties": {
                                 "licenseType": "Windows_Server",
+                                "billingProfile": {
+                                    "maxPrice": "[if(equals(parameters('vmSpot'),bool('true')),'-1',json('null'))]"
+                                },
+                                "priority": "[if(equals(parameters('vmSpot'),bool('true')),'Spot',json('null'))]",
+                                "evictionPolicy": "[if(equals(parameters('vmSpot'),bool('true')),'Deallocate',json('null'))]",
                                 "diagnosticsProfile": {
                                     "bootDiagnostics": {
                                         "enabled": true,
